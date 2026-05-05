@@ -292,7 +292,7 @@ export function ContactDetailSheet({
                   ) : (
                     loans.map((l) => (
                       <div key={l.id} className="flex justify-between text-sm py-1">
-                        <span className="text-muted-foreground">{l.direction === 'lent' ? 'Lent' : 'Borrowed'} · {new Date(l.loan_date).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground">{l.direction === 'given' ? 'Given' : 'Taken'} · {new Date(l.loan_date).toLocaleDateString()}</span>
                         <span className="font-medium">{l.amount} {l.currency}</span>
                       </div>
                     ))
