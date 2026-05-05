@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, Phone, Mail, MapPin, Link2, Star, Lock, Save } from 'lucide-react';
+import { Plus, Trash2, Phone, Mail, MapPin, Link2, Star, Lock, Save, Camera, Loader2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -58,6 +58,8 @@ export function ContactFormSheet({
   const [financeRole, setFinanceRole] = useState<Contact['finance_role']>('none');
   const [isFavorite, setIsFavorite] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const [phones, setPhones] = useState<PhoneRow[]>([]);
   const [emails, setEmails] = useState<EmailRow[]>([]);
@@ -102,6 +104,7 @@ export function ContactFormSheet({
           setFinanceRole(cd.finance_role);
           setIsFavorite(cd.is_favorite);
           setIsPrivate(cd.is_private);
+          setAvatarUrl(cd.avatar_url ?? null);
         }
         setPhones(((p.data as ContactPhone[]) || []).map((x) => ({
           id: x.id, label: x.label, number: x.number, is_whatsapp: x.is_whatsapp, is_wechat: x.is_wechat,
@@ -125,6 +128,7 @@ export function ContactFormSheet({
         setFinanceRole('none'); setIsFavorite(false); setIsPrivate(false);
         setPhones([{ label: 'mobile', number: '', is_whatsapp: false, is_wechat: false }]);
         setEmails([]); setAddresses([]); setSocials([]); setTagIds([]); setFieldValues({});
+        setAvatarUrl(null);
       }
     })();
   }, [open, contactId, defaultGroupId, defaultSubgroupId]);
