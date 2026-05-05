@@ -73,6 +73,22 @@ export function ContactFormSheet({
 
   const filteredSubgroups = subgroups.filter((s) => s.group_id === groupId);
 
+  const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5MB'); return; }
+    setUploadingAvatar(true);
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = `${user.id}/contacts/${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true, contentType: file.type });
+    if (upErr) { toast.error(upErr.message); setUploadingAvatar(false); return; }
+    const { data: signed } = await supabase.storage.from('avatars').createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
+    setAvatarUrl(signed?.signedUrl ?? null);
+    setUploadingAvatar(false);
+    e.target.value = '';
+  };
+  const initialsPreview = (fullName || '?').split(/\s+/).slice(0, 2).map((s) => s[0]).join('').toUpperCase();
+
   useEffect(() => {
     if (!open) return;
     (async () => {
