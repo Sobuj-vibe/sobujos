@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useContactDetail, useContactGroups, useContacts } from '@/hooks/useContacts';
-import { Phone, Mail, MapPin, Globe, Edit3, Star, Lock, MessageCircle, Copy, Pencil, Plus, Trash2, Users as UsersIcon } from 'lucide-react';
+import { Phone, Mail, MapPin, Globe, Edit3, Star, Lock, MessageCircle, Copy, Pencil, Plus, Trash2, Users as UsersIcon, X } from 'lucide-react';
 import { SocialIcon } from './SocialIcon';
 import { NotesList } from './NotesList';
 import { EventsTimeline } from './EventsTimeline';
@@ -18,11 +18,12 @@ import { Tables } from '@/integrations/supabase/types';
 type Loan = Tables<'finance_loans'>;
 
 export function ContactDetailSheet({
-  open, onOpenChange, contactId,
+  open, onOpenChange, contactId, onNavigate,
 }: {
   open: boolean;
   onOpenChange: (b: boolean) => void;
   contactId: string | null;
+  onNavigate?: (id: string) => void;
 }) {
   const { user } = useAuth();
   const { contact, phones, emails, addresses, socials, notes, events, fieldValues, tagIds, relations, refresh } = useContactDetail(contactId);
@@ -37,6 +38,7 @@ export function ContactDetailSheet({
   // Family/relations
   const [relTo, setRelTo] = useState('');
   const [relName, setRelName] = useState('');
+  const [showRelForm, setShowRelForm] = useState(false);
 
   useEffect(() => {
     if (!open || !contactId || !user) return;
