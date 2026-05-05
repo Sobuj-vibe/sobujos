@@ -7,7 +7,7 @@ export function Placeholder({ titleKey }: { titleKey: 'nav.prayer' | 'nav.financ
   return (
     <div>
       <AppBar title={t(titleKey)} />
-      <div className="pt-appbar px-4 pb-4">
+      <div className="pt-appbar md:pt-0 px-4 md:px-0 pb-4">
         <div className="rounded-2xl gradient-soft border border-border p-10 text-center space-y-3 mt-4">
           <div className="mx-auto h-14 w-14 rounded-2xl bg-card flex items-center justify-center shadow-soft">
             <Sparkles className="h-7 w-7 text-primary" />
