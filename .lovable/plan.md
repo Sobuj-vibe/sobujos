@@ -1,115 +1,78 @@
-# Personal Life OS — Plan
+# Desktop Layout (Sidebar + Topbar)
 
-We'll build incrementally. This plan covers **Phase 1: Foundation** and **Phase 2: Tasks Module** (the first feature module). Future modules (Prayer, Financial, AI Assistant) will be built one at a time after each is approved.
+The current mobile UI stays exactly as-is on phones. On screens ≥ `md` (768px) we switch to a roomy desktop shell with a collapsible sidebar, a topbar, and a wider main content area. Same routes, same data, same components — only the shell changes.
 
----
+## Breakpoint rule
 
-## Phase 1 — Foundation
+- `< md` (mobile): existing `AppShell` with `BottomTabs` + `FloatingAI` + `max-w-md` content. Untouched.
+- `≥ md` (tablet/desktop): new `DesktopShell` with sidebar + topbar, no bottom tabs, wider canvas.
 
-### Auth
+`AppShell` becomes a thin switcher that renders `MobileShell` or `DesktopShell` based on `useIsMobile()`.
 
-- Email + password sign-up and login (Lovable Cloud)
-- Forgot password flow (email link → `/reset-password` page to set new password)
-- Protected app routes; unauthenticated users land on a clean welcome/login screen
-- A `profiles` table for display name, avatar, language preference, theme preference
+## Desktop shell anatomy
 
-### Theming (Day / Night / Dim)
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ Sidebar (w-60, collapsible to w-14)  │  Topbar (h-14)        │
+│  ▸ Logo "Life OS"                    │   Page title          │
+│  ▸ Tasks         (active)            │   ───────────────     │
+│  ▸ Prayer                            │   [search] [lang]     │
+│  ▸ Finance                           │   [theme]  [avatar]   │
+│  ▸ Profile                           │ ────────────────────  │
+│                                      │                       │
+│  ── Settings ──                      │   Main content        │
+│  ▸ Theme                             │   (max-w-5xl,         │
+│  ▸ Language                          │    px-8, py-6)        │
+│  ▸ Sign out                          │                       │
+└─────────────────────────────────────────────────────────────┘
+```
 
-- **Soft Indigo / Lavender** palette across all three modes
-- Light: soft lavender-tinted whites, indigo primary
-- Dim: muted slate-indigo (easier on eyes than full dark)
-- Dark: deep indigo-night
-- Theme toggle in Settings; persists per user
-- There should be an option to change the color in the settings
-- All colors via HSL design tokens in `index.css`
+- **Sidebar** (`shadcn/ui` `Sidebar`, `collapsible="icon"`): brand at top, primary nav (Tasks, Prayer, Finance, Profile), divider, secondary actions (Theme toggle, Language switch, Sign out). Active route highlighted via `NavLink`. Collapses to icon-only rail.
+- **Topbar**: `SidebarTrigger` (left), dynamic page title from a small context, right cluster with search placeholder, language switch, theme toggle, avatar menu (Profile / Sign out).
+- **FloatingAI** stays on desktop too, anchored bottom-right (no bottom tabs to dodge).
+- **Main**: centered `max-w-5xl mx-auto px-8 py-6` so content breathes instead of being trapped at `max-w-md`.
 
-### Localization (Bangla + English)
+## Page adjustments (responsive, not duplicated)
 
-- **Default: Bangla (বাংলা)**
-- Language switcher in Settings
-- All UI strings via a translation layer (i18next)
-- Bangla-friendly typography (Noto Sans Bengali for Bangla, Inter for English)
+Pages keep one implementation; we just relax the mobile-only constraints with `md:` classes.
 
-### Mobile-native shell
+- **Tasks page**:
+  - Today section: full width on desktop, single column rounded card.
+  - Groups grid: `grid-cols-2` on mobile → `md:grid-cols-3 lg:grid-cols-4` on desktop.
+  - "New group" FAB: hidden on desktop (`md:hidden`); replaced by a "+ New group" button in the page header row.
+- **GroupDetail**: wider list, two-column layout on `lg` (task list left, selected-task detail panel right — optional, fallback to current sheet).
+- **Profile**: form max-width `max-w-xl`, two-column for theme/language pickers on desktop.
+- **AppBar (mobile)**: only renders on mobile. On desktop the topbar shows the title via a `usePageTitle` hook the pages call (or we read from route metadata).
 
-- Bottom tab bar (Tasks, Prayer, Finance, Profile) — feels like a native app
-- Top app bar with screen title + contextual actions
-- Floating Action Button (FAB) for the primary "add" action on each screen
-- Safe-area padding, large tap targets, swipe gestures, smooth transitions
-- Pull-to-refresh on lists
-- Floating AI Assistant button (bottom-right, above tab bar) — placeholder for now, wired up in a later phase
+## Files
 
-### PWA / Installable
+New:
+- `src/components/app/DesktopShell.tsx` — sidebar + topbar + `<Outlet />`.
+- `src/components/app/AppSidebar.tsx` — shadcn Sidebar with nav items, collapsible icon mode, active highlighting.
+- `src/components/app/DesktopTopbar.tsx` — `SidebarTrigger`, title, language switch, theme toggle, avatar menu.
+- `src/contexts/PageTitleContext.tsx` (small) — pages set title; mobile `AppBar` and desktop topbar both consume.
 
-- Web app manifest with icons, `display: standalone`, indigo theme color
-- Splash screen + app icon
-- Installable from browser ("Add to Home Screen")
-- An `/install` helper page with instructions for iOS and Android
-- Note: full offline service worker is **not** added in v1 (it conflicts with the Lovable preview). The app will be fully installable and feel native; offline caching can be added later when ready to ship.
+Edited:
+- `src/components/app/AppShell.tsx` — branch on `useIsMobile()` to render `MobileShell` (existing markup) or `DesktopShell`.
+- `src/components/app/AppBar.tsx` — render `null` on desktop (or just leave it; AppShell controls which shell shows it).
+- `src/components/app/FloatingAI.tsx` — adjust position for desktop (no bottom tab offset).
+- `src/pages/app/Tasks.tsx`, `GroupDetail.tsx`, `Profile.tsx` — add `md:` responsive classes; hide FABs on desktop and add inline action buttons; call `usePageTitle`.
+- `src/index.css` — minor: ensure no fixed `max-w-md` leaks; desktop content uses theme tokens already defined.
 
-### Profile & Settings page
+Untouched:
+- All hooks, data layer, auth, i18n, theme tokens, mobile look & feel.
 
-- Display name, avatar, the user can upload photo
-- Theme picker (Day / Dim / Night)
-- An option to change the color
-- Language picker (বাংলা / English)
-- user location picker
-- A button to install the PWA app
-- Sign out
-- About the app and version number (Each update on lovable will change the version number)
-- Placeholder sections for future module preferences
+## Behavior details
 
----
+- Sidebar default: expanded on `lg+`, collapsed-to-icon on `md` (768–1023). User toggle persists via the existing shadcn cookie.
+- Theme + language switchers exist in both the sidebar footer and the topbar avatar menu for discoverability.
+- Floating AI button: bottom-right `right-6 bottom-6` on desktop; current position on mobile.
+- No route changes — same URLs work on both layouts.
 
-## Phase 2 — Tasks Module
+## Out of scope
 
-Hierarchy: **Task Group → Task → Subtask**
+- No new modules (Prayer/Finance still placeholders).
+- No keyboard-shortcut palette yet (can come later).
+- No multi-pane "master/detail" rework beyond the optional GroupDetail right panel.
 
-### Screens
-
-1. **Groups list** (Tasks tab home)
-  - Cards/list of all task groups with color, icon, progress (e.g. "4/10 done today")
-  - FAB → create new group
-2. **Group detail**
-  - Tasks in that group, grouped by status (Today / Upcoming / Completed)
-  - FAB → create new task
-3. **Task detail / edit sheet**
-  - Title, notes, due date, priority (low/med/high), subtasks checklist, completion
-  - Inline add for subtasks
-
-### Behavior
-
-- Check off subtasks → task progress updates automatically
-- Check off task → moves to Completed
-- Long-press / swipe to edit or delete
-- Search across groups and tasks
-- Today view at top of Tasks tab: everything due today across all groups
-
-### Data
-
-- `task_groups` (id, user_id, name, color, icon, created_at)
-- `tasks` (id, group_id, user_id, title, notes, due_date, priority, completed_at)
-- `subtasks` (id, task_id, title, completed_at, position)
-- RLS so each user only sees their own data
-
----
-
-## What comes after (not built yet)
-
-- **Phase 3:** Prayer Tracker (Namaz + Kaza)
-- **Phase 4:** Financial (Income, Expense, Loan, Recurring/Subscriptions)
-- **Phase 5:** AI Assistant — chat that can read your data and take actions (create tasks, log expenses, mark prayers) via Lovable AI
-- **Phase 6+:** Future modules
-
----
-
-## Technical notes
-
-- Lovable Cloud for auth, database, storage
-- React Router with protected routes
-- Tailwind + shadcn/ui, all colors as HSL semantic tokens
-- i18next for Bangla/English
-- Manifest-only PWA (no service worker in v1)
-- Roles stored in a separate `user_roles` table (ready for future admin features)
-
-After you approve, I'll implement Phase 1 + Phase 2 and we'll verify everything works before moving to the Prayer Tracker.
+After approval I'll implement this and you can resize the browser to see both layouts swap at 768px.

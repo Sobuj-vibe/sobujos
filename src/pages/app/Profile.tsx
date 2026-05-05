@@ -86,7 +86,8 @@ export default function Profile() {
   return (
     <div>
       <AppBar title={t('profile.title')} />
-      <div className="pt-appbar px-4 pb-4 space-y-6">
+      <div className="pt-appbar md:pt-0 px-4 md:px-0 pb-4 space-y-6 md:max-w-2xl">
+        <h1 className="hidden md:block text-2xl font-bold">{t('profile.title')}</h1>
 
         {/* Account card */}
         <section className="rounded-2xl bg-card border border-border p-5 shadow-soft space-y-4">

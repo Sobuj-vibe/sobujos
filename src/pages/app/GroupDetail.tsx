@@ -11,6 +11,8 @@ import { GroupFormSheet } from '@/components/tasks/GroupFormSheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft } from 'lucide-react';
 
 export default function GroupDetail() {
   const { t } = useTranslation();
@@ -65,7 +67,35 @@ export default function GroupDetail() {
           </DropdownMenu>
         }
       />
-      <div className="pt-appbar px-4 pb-4 space-y-5">
+      <div className="pt-appbar md:pt-0 px-4 md:px-0 pb-4 space-y-5">
+        <div className="hidden md:flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <Button variant="ghost" size="icon" onClick={() => nav(-1)} className="shrink-0">
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold truncate">{group?.name ?? '...'}</h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button onClick={openNew} className="gap-2">
+              <Plus className="h-4 w-4" />
+              {t('tasks.newTask')}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setGroupEditOpen(true)}><Pencil className="h-4 w-4 mr-2" />{t('common.edit')}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setConfirmDelete(true)} className="text-destructive"><Trash2 className="h-4 w-4 mr-2" />{t('common.delete')}</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
         {tasks.length === 0 && (
           <div className="rounded-2xl gradient-soft border border-border p-8 text-center text-sm text-muted-foreground">
             {t('tasks.noTasks')}
@@ -79,7 +109,7 @@ export default function GroupDetail() {
       <button
         onClick={openNew}
         aria-label={t('tasks.newTask')}
-        className="fixed left-4 z-40 tap shadow-elevated rounded-full h-14 w-14 flex items-center justify-center bg-primary text-primary-foreground"
+        className="md:hidden fixed left-4 z-40 tap shadow-elevated rounded-full h-14 w-14 flex items-center justify-center bg-primary text-primary-foreground"
         style={{ bottom: 'calc(5.5rem + env(safe-area-inset-bottom))' }}
       >
         <Plus className="h-6 w-6" />

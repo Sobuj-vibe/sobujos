@@ -1,6 +1,8 @@
 import { ReactNode } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { usePageTitle } from '@/contexts/PageTitleContext';
 
 type Props = {
   title: string;
@@ -11,6 +13,10 @@ type Props = {
 
 export function AppBar({ title, back, right, subtitle }: Props) {
   const nav = useNavigate();
+  const isMobile = useIsMobile();
+  // Always sync title to context so the desktop topbar can show it.
+  usePageTitle(title, subtitle);
+  if (!isMobile) return null;
   return (
     <header className="fixed top-0 left-0 right-0 z-30 bg-background/85 backdrop-blur-lg border-b border-border safe-top">
       <div className="max-w-md mx-auto h-14 px-3 flex items-center gap-2">

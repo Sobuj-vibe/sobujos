@@ -2,17 +2,23 @@ import { Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export function FloatingAI() {
   const [open, setOpen] = useState(false);
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   return (
     <>
       <button
         onClick={() => setOpen(true)}
         aria-label="AI Assistant"
-        className="fixed right-4 z-40 tap shadow-elevated rounded-full h-14 w-14 flex items-center justify-center gradient-primary text-primary-foreground"
-        style={{ bottom: 'calc(5.5rem + env(safe-area-inset-bottom))' }}
+        className="fixed right-4 md:right-6 z-40 tap shadow-elevated rounded-full h-14 w-14 flex items-center justify-center gradient-primary text-primary-foreground"
+        style={{
+          bottom: isMobile
+            ? 'calc(5.5rem + env(safe-area-inset-bottom))'
+            : '1.5rem',
+        }}
       >
         <Sparkles className="h-6 w-6" />
       </button>

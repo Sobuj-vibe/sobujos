@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
 
 export default function Tasks() {
   const { t } = useTranslation();
@@ -29,7 +30,18 @@ export default function Tasks() {
   return (
     <div>
       <AppBar title={t('tasks.title')} />
-      <div className="pt-appbar px-4 pb-4 space-y-5">
+      <div className="pt-appbar md:pt-0 px-4 md:px-0 pb-4 space-y-5">
+        <div className="hidden md:flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">{t('tasks.title')}</h1>
+            <p className="text-sm text-muted-foreground">{t('app.tagline')}</p>
+          </div>
+          <Button onClick={() => setOpen(true)} className="gap-2">
+            <FolderPlus className="h-4 w-4" />
+            {t('tasks.newGroup')}
+          </Button>
+        </div>
+
         {todayTasks.length > 0 && (
           <section className="space-y-2">
             <h2 className="text-sm font-semibold text-muted-foreground px-1">{t('tasks.todayTitle')}</h2>
@@ -59,7 +71,7 @@ export default function Tasks() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {groups.map((g) => <GroupCard key={g.id} group={g} />)}
             </div>
           )}
@@ -69,7 +81,7 @@ export default function Tasks() {
       <button
         onClick={() => setOpen(true)}
         aria-label={t('tasks.newGroup')}
-        className="fixed left-4 z-40 tap shadow-elevated rounded-full h-14 w-14 flex items-center justify-center bg-primary text-primary-foreground"
+        className="md:hidden fixed left-4 z-40 tap shadow-elevated rounded-full h-14 w-14 flex items-center justify-center bg-primary text-primary-foreground"
         style={{ bottom: 'calc(5.5rem + env(safe-area-inset-bottom))' }}
       >
         <FolderPlus className="h-6 w-6" />
