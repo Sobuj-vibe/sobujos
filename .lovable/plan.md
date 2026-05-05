@@ -1,200 +1,136 @@
-# Habits & Goals Module — Final Build Plan
+# Personal CRM Module — Plan
 
-A focused life-management module that pairs **daily habits** (quick check-ins with streaks + heatmap) with **goals** (long-horizon outcomes broken into milestones). Built to match the existing Tasks/Prayer/Finance patterns: bilingual, sub-tab switcher, AI integrated, mobile-first.
-
-## Page layout
-
-Route: `/app/habits` — new sidebar entry "Habits" (icon: `Target`).
-
-Sub-tab pill switcher (mirrors Prayer/Finance):
-
-```text
-[ Today | Habits | Goals | Stats ]
-```
-
-### Today (default)
-
-- Greeting + date + overall day completion ring (e.g. "5 / 8 done · 62%")
-- **Time-of-day groups**: Morning · Afternoon · Evening · Anytime
-- Each habit row: icon, name, streak flame badge, check button (boolean) **or** counter buttons +1 / -1 / target (quantifiable), long-press to log custom value/note
-- Skip button per habit (counts as "vacation day" — preserves streak, doesn't break it)
-- Bottom: "Top goal of the week" mini card (next milestone + progress bar)
-
-### Habits
-
-- List of all habits, grouped by status (Active / Paused / Archived)
-- Card shows: icon, name, current streak, best streak, last 7-day mini-dots, weekly target (e.g. "5 / 7 days"), edit menu
-- "+ New habit" sheet:
-  - Name, icon, color
-  - **Type**: Boolean (done/not done) | Counter (e.g. 30 push-ups) | Duration (e.g. 20 min meditation)
-  - **Target unit** (only for counter/duration): reps, pages, minutes, glasses, km, etc. (free text + presets)
-  - **Daily target value** (e.g. 8 glasses, 30 min)
-  - **Schedule**: Every day | Specific weekdays | X times per week
-  - **Time of day**: Morning / Afternoon / Evening / Anytime
-  - **Reminder time** (optional, stored — used later if push enabled)
-  - **Linked goal** (optional dropdown)
-  - **Why** (motivation text shown on card flip)
-
-### Goals
-
-- List of goals as cards. Each card shows: title, deadline countdown, progress %, milestone count (e.g. 3/5), linked-habit chips.
-- "+ New goal" sheet:
-  - Title, description, category (Health, Career, Learning, Finance, Spiritual, Personal, Other)
-  - **Type**: Outcome (e.g. "Lose 5kg") | Process (e.g. "Read 12 books this year") | Project (one-shot)
-  - **Target value + unit** (optional, for measurable goals)
-  - **Start date + deadline**
-  - **Milestones** (sub-checkpoints with their own dates) — repeatable rows (AI will break down the goal into multiple milestones, and you can also add manually, and if needed, you can edit the existing milestones)
-  - **Linked habits** (multi-select existing habits that contribute)
-  - **Weekly review reminder** (toggle)
-- Goal detail view: progress chart, milestone checklist, linked habits with their streaks, notes log (timestamped quick notes added from the goal page).
-
-### Stats
-
-- **Yearly heatmap** per habit (GitHub-style 365-day grid, color intensity = completion). Reuses Kaza heatmap pattern from Prayer.
-- **Streak leaderboard** — your habits sorted by current streak
-- **Weekly consistency** — bar chart, last 12 weeks, % of habits done per week
-- **Best day of week** — which weekday you're most consistent
-- **Goal progress** — overall % across all active goals
-
-## Cross-module integrations
-
-1. **Prayer ↔ Habits**: 5 daily prayers automatically appear as a "synced" habit set in Today view (read-only, ticking them in either place updates both via the prayer logs).
-2. **Tasks ↔ Goals**: From a goal's detail page, "Create task" pre-fills the task with the goal name as a tag in notes; tasks can optionally be linked to a milestone (stored in `tasks.notes` reference for now to avoid schema bloat).
-3. **Finance ↔ Goals**: A goal can have a **savings target** (e.g. "Save 50,000 BDT for laptop") — progress auto-fills from a chosen finance category's net contribution this month/year.
-
-## AI features
-
-Extend `ai-assistant` with new tools:
-
-- `list_habits`, `add_habit`, `update_habit`, `archive_habit`
-- `log_habit` (today by default; supports value for counter/duration)
-- `skip_habit_today`
-- `list_goals`, `add_goal`, `update_goal_progress`, `add_milestone`, `complete_milestone`
-- `get_habit_stats` (streak, last 30-day completion, consistency %)
-- `get_today_habits` (what's left for today)
-- `suggest_habits_for_goal` (AI proposes 2–4 supporting habits given a goal title — user approves to create)
-- `weekly_review` (AI generates a short reflection: streaks held/broken, goal progress, suggestions for next week)
-
-Natural-language examples that should work:
-
-- "Add a habit: meditate 10 min every morning"
-- "I drank 6 glasses of water today" → updates the counter habit
-- "How am I doing on my reading goal?"
-- "Give me my weekly review"
-
-## Bonus features included
-
-- **Habit templates** — quick-start library: Drink water, Exercise, Read, Sleep early, No social media after 10 pm, Walk 8k steps, Journal, Stretch, Thesis & Research Work, etc. One-tap to add.
-- **Streak freeze** — 2 free freezes per month auto-applied if you miss a day (configurable, off by default to keep it strict).
-- **Why card** — long-press a habit shows your "why" — keeps motivation visible.
-- **Yearly heatmap export** — share-as-image button (uses canvas) on Stats tab.
-- **Smart "today is light" badge** — if scheduled habits for today < 4, show a "good day to add one more" nudge.
-
-## Out of scope (saved for later)
-
-- Push notifications (web push) — fields stored, delivery later
-- Mood/journaling — separate module
-- Bad-habit/quit counter — can be added later as a habit type
-- Social sharing / friends
+A new top-level module `/app/contacts` that lets you store people as rich profiles, organize them into Contact Groups → Sub‑groups (e.g. **University → Batch 2018**, **RBIT Clients → Active**, **Service Sellers → Hosting**), and keep multiple notes, social links, and timeline events per person.
 
 ---
 
-## Technical details
+## 1. Core Module (the must‑have you described)
 
-### Database (new tables, RLS by `user_id`)
+### Contact Groups & Sub‑groups
+
+- Create / rename / recolor / reorder groups (e.g. *University, RBIT Clients, Service Sellers, Family, Friends, Others*).
+- Each group can have multiple sub‑groups (e.g. *Service Sellers → Hosting, Domain, Design*).
+- Default groups seeded on first visit (you can edit/delete).
+- A contact lives in **one sub‑group** (or directly under a group if no sub‑group), and can additionally be assigned **labels/tags** for cross‑cutting (VIP, Lead, Paid, Friend…).
+
+### Contact Profile (the person record)
+
+Fields, all optional except name:
+
+- **Identity**: full name, nickname, avatar (upload to existing `avatars` bucket), gender, date of birth, blood group, location.
+- **Reach**: multiple phone numbers (with label: mobile/work/home + WhatsApp, wechat toggle), multiple emails, multiple addresses (label + city + country).
+- **Online**: company, job title, website, and a **dynamic list of social links** (Facebook, Instagram, X, LinkedIn, GitHub, YouTube, Telegram, Discord, custom — auto‑detect platform from URL & show icon).
+- **Relations**: relationship to you (free text), how you met, introduced by (link to another contact).
+- **Group**: contact group + sub‑group + tags.
+- **Notes**: a rich list of timestamped notes (`contact_notes` table) — add, edit, delete each independently. Pin important ones to top.
+- **Files/IDs** (optional): national ID, passport no, etc. (free‑form custom fields — see suggestion #3 below).
+  &nbsp;
+
+### Contacts page UX
+
+- Sub‑tabs: **All / Groups / Recent / Favorites**.
+- Search bar (name, phone, email, company, note text, website, location).
+- Filter by group, sub‑group, tag.
+- Grid of group cards on the **Groups** tab → tap a group → see its sub‑groups → see contacts.
+- List view with avatar, name, group chip, last interaction date.
+- Tap a contact → **detail sheet** with tabs: *Info · Notes · Activity · Files*.
+- Quick actions: call, WhatsApp, email, copy phone, open social link.
+
+### AI assistant tools (extends existing `ai-assistant` edge function)
+
+`list_contacts`, `add_contact`, `update_contact`, `archive_contact`, `add_contact_note`, `find_contact`, `list_groups`, `add_group`, `add_subgroup`, `set_contact_tags`. Examples: *"Add Karim from RBIT, phone +880…, hosting client"*, *"Show all RBIT clients"*, *"Add note to Karim: paid for 2026 hosting"*.
+
+---
+
+## 2. Suggested Extra Features — pick what you want
+
+Mark each as **Yes / Maybe / No** and I'll lock the final scope.
+
+**(Maybe) Interaction timeline** — auto-log when you opened the profile, called, or messaged. Manual "Logged a meeting" entries with date + summary. Helps you remember *"when did I last talk to X"*.
+
+1. **(Yes add this)  Custom fields per group** — e.g. *University* group can have "Student ID, Department, Session"; *RBIT Clients* can have "Service, Renewal date, Amount". Defined once per group, applies to all contacts in it.
+2. **(Yes add this) Follow‑up reminders** — set "Remind me to follow up with Karim on May 20" → creates a task in the existing Tasks module linked back to the contact.
+3. **(Yes add this) Link to Finance** — mark a contact as a *client/vendor/lender*. Their `finance_loans` and recurring payments auto‑show on the profile. *"Karim owes you 5,000 BDT"* visible at a glance.
+4. **(Maybe but not now save for future) Link to Habits/Goals** — assign a contact as accountability partner for a goal or habit (shows their avatar on the goal card).
+5. **(Yes good features idea)  Family tree / relationships** — link contacts to each other ("father of", "wife of", "colleague at"). Shown as a small graph on profile.
+6. **(Maybe) Communication log shortcuts** — tap "Called" / "WhatsApped" / "Met" buttons → logs to timeline in one tap.
+7. **(Yes) Bulk actions** — multi‑select contacts to move group, add tag, or export.
+8. **Shared with assistant context** — when chatting with AI, *"What do I know about Karim?"* returns full profile + recent notes + linked finance/tasks.
+
+My recommendation if you want a strong v1 without bloat: **Yes** to 1, 2, 3, 4, 5, 9, 13, 15. **Maybe** 7, 8, 12. **Skip for now** 6, 10, 11, 14.
+
+---
+
+## 3. Database (new tables, all RLS by `user_id`)
 
 ```text
-habits
-  id uuid pk, user_id uuid, name text, icon text, color text,
-  type text ('boolean'|'counter'|'duration'),
-  target_unit text null, target_value numeric null,
-  schedule_kind text ('daily'|'weekdays'|'weekly_count'),
-  schedule_days int[] null,         -- e.g. [1,2,3,4,5] for weekdays
-  weekly_count int null,            -- if schedule_kind='weekly_count'
-  time_of_day text ('morning'|'afternoon'|'evening'|'anytime'),
-  reminder_time time null,
-  goal_id uuid null,                -- soft FK to goals.id
-  why text null,
-  status text ('active'|'paused'|'archived') default 'active',
-  position int default 0,
-  freezes_per_month int default 0,
-  created_at timestamptz default now()
-
-habit_logs
-  id uuid pk, user_id uuid, habit_id uuid,
-  date date,                        -- the day this log applies to
-  value numeric default 1,          -- 1 for boolean done; counter value otherwise
-  status text ('done'|'partial'|'skipped'|'frozen') default 'done',
-  note text null,
-  logged_at timestamptz default now()
-  unique (user_id, habit_id, date)  -- one row per habit per day (upsert)
-
-goals
-  id uuid pk, user_id uuid,
-  title text, description text null,
-  category text, type text ('outcome'|'process'|'project'),
-  target_value numeric null, target_unit text null,
-  current_value numeric default 0,
-  start_date date default current_date,
-  deadline date null,
-  status text ('active'|'completed'|'archived') default 'active',
-  finance_category_id uuid null,    -- optional auto-progress source
-  weekly_review boolean default false,
-  created_at timestamptz default now(),
-  completed_at timestamptz null
-
-goal_milestones
-  id uuid pk, user_id uuid, goal_id uuid,
-  title text, target_date date null,
-  position int default 0,
-  completed_at timestamptz null
-
-goal_notes
-  id uuid pk, user_id uuid, goal_id uuid,
-  body text, created_at timestamptz default now()
+contact_groups       (id, user_id, name, color, icon, position, created_at)
+contact_subgroups    (id, user_id, group_id, name, position, created_at)
+contacts             (id, user_id, group_id, subgroup_id,
+                      full_name, nickname, avatar_url, gender, dob,
+                      company, job_title, website, relationship,
+                      met_through_id (→ contacts.id), notes_summary,
+                      is_favorite, is_private, status, created_at, updated_at)
+contact_phones       (id, contact_id, user_id, label, number, is_whatsapp, position)
+contact_emails       (id, contact_id, user_id, label, email, position)
+contact_addresses    (id, contact_id, user_id, label, line1, city, country, position)
+contact_socials      (id, contact_id, user_id, platform, url, position)
+contact_tags         (id, user_id, name, color)            ← reusable tag library
+contact_tag_links    (contact_id, tag_id, user_id)         ← M:N
+contact_notes        (id, contact_id, user_id, body, is_pinned, created_at, updated_at)
+contact_events       (id, contact_id, user_id, kind (call/meet/whatsapp/email/custom),
+                      occurred_at, summary)                 ← interaction timeline
+contact_custom_fields(id, group_id, user_id, label, type, position)   ← if you pick #3
+contact_field_values (id, contact_id, field_id, user_id, value)
 ```
 
-All tables: `alter table ... enable row level security` + `create policy "x_all" for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id)`.
+Indexes on `(user_id, group_id)`, `(user_id, full_name)` (trigram for search), `(contact_id)` on every child table.
 
-Indexes: `(user_id, date)` on `habit_logs`; `(user_id, status)` on habits and goals.
+Foreign‑key cascade deletes on contact removal. `met_through_id` set NULL on delete.
 
-### Frontend
+---
 
-- New folder `src/components/habits/`:
-  - `HabitsTabs.tsx`, `TodayView.tsx`, `HabitsList.tsx`, `GoalsList.tsx`, `StatsView.tsx`
-  - `HabitCard.tsx`, `HabitFormSheet.tsx`, `HabitCheckButton.tsx` (handles boolean/counter/duration)
-  - `GoalCard.tsx`, `GoalFormSheet.tsx`, `GoalDetailSheet.tsx`, `MilestoneRow.tsx`
-  - `YearlyHeatmap.tsx` (reusable, also good for Prayer Kaza later)
-  - `StreakBadge.tsx`, `WeekDots.tsx` (last-7-day mini indicator)
-  - `HabitTemplates.tsx` (template picker grid)
-- New page: `src/pages/app/Habits.tsx`
-- New hooks: `src/hooks/useHabits.ts`, `src/hooks/useGoals.ts` — both emit `ai-data-changed` after mutations and expose `refresh()`
-- New data: `src/data/habitTemplates.ts` (preset library, bilingual)
-- `src/components/app/AppSidebar.tsx` — add Habits nav entry
-- `src/App.tsx` — add `/app/habits` route
+## 4. Frontend structure
 
-### Streak math (client-side, in `useHabits`)
+```text
+src/pages/app/Contacts.tsx                   ← new page, tabs: All / Groups / Recent / Favorites
+src/components/contacts/
+  ContactsTabs.tsx
+  GroupsView.tsx          (group cards → subgroup list)
+  ContactsList.tsx        (search + filter + virtualized list)
+  ContactCard.tsx         (avatar, name, chips, quick actions)
+  ContactDetailSheet.tsx  (tabs: Info / Notes / Activity / Linked)
+  ContactFormSheet.tsx    (full editor with repeatable phone/email/social rows)
+  GroupFormSheet.tsx
+  SubgroupFormSheet.tsx
+  TagPicker.tsx
+  SocialIcon.tsx          (auto-detect platform from URL)
+  NotesList.tsx           (per-contact pinnable notes)
+  EventsTimeline.tsx      (interaction log)
+src/hooks/useContacts.ts
+src/hooks/useContactGroups.ts
+src/data/contactDefaults.ts (seed groups + common social platforms)
+```
 
-For each habit:
+Routing: add `/app/contacts` to `App.tsx`. Sidebar + bottom-tabs gain a **Contacts** entry (icon `Users`). Bottom tabs become 6 entries — I'll switch to a "More" overflow if it gets cramped on mobile.
 
-- Build a date set from `habit_logs` where `status in ('done','partial','frozen')` and value meets target (if quantifiable).
-- Walk back from today over scheduled days only. `skipped` breaks the streak unless freeze applied.
-- Cache per habit; recompute on mutation.
+i18n: `contacts.*` keys added to `en.ts` and `bn.ts`.
 
-### AI assistant tool additions
+All date columns use the existing `useTimezone()` + `todayInTz()` so birthdays/reminders match your local day.
 
-In `supabase/functions/ai-assistant/index.ts`, register the new tools listed above. Each tool validates JWT, scopes by `user_id`, and returns compact JSON. `weekly_review` aggregates last-7-day logs + goal deltas server-side and lets the model phrase the summary in user's language.
+---
 
-### i18n
+## 5. Out of scope (won't build unless you ask)
 
-Add `habits.*` keys in `src/i18n/en.ts` and `src/i18n/bn.ts` for: tab titles, time-of-day groups, type/schedule labels, all template names, button labels (Check, Skip, Freeze, +1, -1), empty states, stats card titles, goal categories/types, AI nudges.
+- Two‑way sync with Google/Apple Contacts.
+- Email/SMS sending from the app.
+- Multi‑user shared CRM / team accounts.
+- Encryption at rest beyond what the database already provides.
 
-### Acceptance
+---
 
-- `/app/habits` opens to Today, lists today's scheduled habits grouped by time of day, shows real streaks.
-- Adding a habit (boolean/counter/duration) and logging it updates streak, week-dots, and yearly heatmap immediately.
-- Goals show progress %, can have milestones added/completed, and a goal detail view lists linked habits with their streaks.
-- Stats tab renders a yearly heatmap and weekly consistency chart from real logs.
-- Sidebar shows "Habits" entry that highlights when active.
-- AI: "log my water habit, 7 glasses" updates the counter; "how's my reading goal?" returns progress; "weekly review" returns a coherent summary in the active language.
-- Switching between English and Bengali updates every label.
+## What I need from you before I build
+
+1. Mark **Yes / Maybe / No** on suggestions **1–15** in section 2 (or just say *"go with your recommendation"*).
+2. Confirm bottom-tab plan: keep 5 tabs and put Contacts under a **More** menu.
+3. Confirm seed groups: *University, RBIT Clients, Service Sellers, Family, Friends, Others* — add/remove any?

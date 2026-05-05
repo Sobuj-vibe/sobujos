@@ -14,6 +14,593 @@ export type Database = {
   }
   public: {
     Tables: {
+      contact_addresses: {
+        Row: {
+          city: string | null
+          contact_id: string
+          country: string | null
+          created_at: string
+          id: string
+          label: string
+          line1: string | null
+          position: number
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          contact_id: string
+          country?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          line1?: string | null
+          position?: number
+          user_id: string
+        }
+        Update: {
+          city?: string | null
+          contact_id?: string
+          country?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          line1?: string | null
+          position?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_addresses_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_custom_fields: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          label: string
+          position: number
+          type: Database["public"]["Enums"]["contact_field_type"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          label: string
+          position?: number
+          type?: Database["public"]["Enums"]["contact_field_type"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          label?: string
+          position?: number
+          type?: Database["public"]["Enums"]["contact_field_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_custom_fields_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "contact_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_emails: {
+        Row: {
+          contact_id: string
+          created_at: string
+          email: string
+          id: string
+          label: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          email: string
+          id?: string
+          label?: string
+          position?: number
+          user_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          label?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_emails_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_events: {
+        Row: {
+          contact_id: string
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["contact_event_kind"]
+          occurred_at: string
+          summary: string | null
+          user_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["contact_event_kind"]
+          occurred_at?: string
+          summary?: string | null
+          user_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["contact_event_kind"]
+          occurred_at?: string
+          summary?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_field_values: {
+        Row: {
+          contact_id: string
+          created_at: string
+          field_id: string
+          id: string
+          user_id: string
+          value: string | null
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          field_id: string
+          id?: string
+          user_id: string
+          value?: string | null
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          field_id?: string
+          id?: string
+          user_id?: string
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_field_values_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_field_values_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "contact_custom_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_groups: {
+        Row: {
+          color: string
+          created_at: string
+          icon: string
+          id: string
+          name: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          name: string
+          position?: number
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          name?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      contact_notes: {
+        Row: {
+          body: string
+          contact_id: string
+          created_at: string
+          id: string
+          is_pinned: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          contact_id: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          contact_id?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_phones: {
+        Row: {
+          contact_id: string
+          created_at: string
+          id: string
+          is_wechat: boolean
+          is_whatsapp: boolean
+          label: string
+          number: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          id?: string
+          is_wechat?: boolean
+          is_whatsapp?: boolean
+          label?: string
+          number: string
+          position?: number
+          user_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          id?: string
+          is_wechat?: boolean
+          is_whatsapp?: boolean
+          label?: string
+          number?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_phones_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_relationships: {
+        Row: {
+          created_at: string
+          from_contact_id: string
+          id: string
+          relation: string
+          to_contact_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_contact_id: string
+          id?: string
+          relation: string
+          to_contact_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_contact_id?: string
+          id?: string
+          relation?: string
+          to_contact_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_relationships_from_contact_id_fkey"
+            columns: ["from_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_relationships_to_contact_id_fkey"
+            columns: ["to_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_socials: {
+        Row: {
+          contact_id: string
+          created_at: string
+          id: string
+          platform: string
+          position: number
+          url: string
+          user_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          id?: string
+          platform: string
+          position?: number
+          url: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          id?: string
+          platform?: string
+          position?: number
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_socials_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_subgroups: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          name: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          name: string
+          position?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          name?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_subgroups_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "contact_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_tag_links: {
+        Row: {
+          contact_id: string
+          tag_id: string
+          user_id: string
+        }
+        Insert: {
+          contact_id: string
+          tag_id: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string
+          tag_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_tag_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_tag_links_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "contact_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_tags: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      contacts: {
+        Row: {
+          avatar_url: string | null
+          blood_group: string | null
+          company: string | null
+          created_at: string
+          dob: string | null
+          finance_role: Database["public"]["Enums"]["contact_role"]
+          full_name: string
+          gender: string | null
+          group_id: string | null
+          how_we_met: string | null
+          id: string
+          is_favorite: boolean
+          is_private: boolean
+          job_title: string | null
+          last_interaction_at: string | null
+          location: string | null
+          met_through_id: string | null
+          nickname: string | null
+          relationship: string | null
+          status: Database["public"]["Enums"]["contact_status"]
+          subgroup_id: string | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          blood_group?: string | null
+          company?: string | null
+          created_at?: string
+          dob?: string | null
+          finance_role?: Database["public"]["Enums"]["contact_role"]
+          full_name: string
+          gender?: string | null
+          group_id?: string | null
+          how_we_met?: string | null
+          id?: string
+          is_favorite?: boolean
+          is_private?: boolean
+          job_title?: string | null
+          last_interaction_at?: string | null
+          location?: string | null
+          met_through_id?: string | null
+          nickname?: string | null
+          relationship?: string | null
+          status?: Database["public"]["Enums"]["contact_status"]
+          subgroup_id?: string | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          blood_group?: string | null
+          company?: string | null
+          created_at?: string
+          dob?: string | null
+          finance_role?: Database["public"]["Enums"]["contact_role"]
+          full_name?: string
+          gender?: string | null
+          group_id?: string | null
+          how_we_met?: string | null
+          id?: string
+          is_favorite?: boolean
+          is_private?: boolean
+          job_title?: string | null
+          last_interaction_at?: string | null
+          location?: string | null
+          met_through_id?: string | null
+          nickname?: string | null
+          relationship?: string | null
+          status?: Database["public"]["Enums"]["contact_status"]
+          subgroup_id?: string | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "contact_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_met_through_id_fkey"
+            columns: ["met_through_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_subgroup_id_fkey"
+            columns: ["subgroup_id"]
+            isOneToOne: false
+            referencedRelation: "contact_subgroups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finance_budgets: {
         Row: {
           amount_limit: number
@@ -778,6 +1365,7 @@ export type Database = {
       tasks: {
         Row: {
           completed_at: string | null
+          contact_id: string | null
           created_at: string
           due_date: string | null
           group_id: string
@@ -791,6 +1379,7 @@ export type Database = {
         }
         Insert: {
           completed_at?: string | null
+          contact_id?: string | null
           created_at?: string
           due_date?: string | null
           group_id: string
@@ -804,6 +1393,7 @@ export type Database = {
         }
         Update: {
           completed_at?: string | null
+          contact_id?: string | null
           created_at?: string
           due_date?: string | null
           group_id?: string
@@ -816,6 +1406,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_group_id_fkey"
             columns: ["group_id"]
@@ -861,6 +1458,17 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      contact_event_kind:
+        | "call"
+        | "whatsapp"
+        | "meet"
+        | "email"
+        | "sms"
+        | "note"
+        | "custom"
+      contact_field_type: "text" | "number" | "date" | "url" | "email" | "phone"
+      contact_role: "none" | "client" | "vendor" | "lender" | "borrower"
+      contact_status: "active" | "archived" | "blocked"
       finance_currency: "BDT" | "CNY" | "USD"
       finance_kind: "income" | "expense"
       goal_status: "active" | "completed" | "archived"
@@ -1002,6 +1610,18 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      contact_event_kind: [
+        "call",
+        "whatsapp",
+        "meet",
+        "email",
+        "sms",
+        "note",
+        "custom",
+      ],
+      contact_field_type: ["text", "number", "date", "url", "email", "phone"],
+      contact_role: ["none", "client", "vendor", "lender", "borrower"],
+      contact_status: ["active", "archived", "blocked"],
       finance_currency: ["BDT", "CNY", "USD"],
       finance_kind: ["income", "expense"],
       goal_status: ["active", "completed", "archived"],
