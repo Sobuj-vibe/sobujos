@@ -160,6 +160,7 @@ export function RecurringSection() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const { items, remove } = useRecurring();
+  const { timezone } = useTimezone();
 
   const grouped = useMemo(() => ({
     expense: items.filter((r) => r.kind === 'expense'),
@@ -173,7 +174,7 @@ export function RecurringSection() {
       return d >= 0 && d <= 5;
     });
     if (due.length > 0) {
-      const key = `finance-reminded-${new Date().toISOString().slice(0,10)}`;
+      const key = `finance-reminded-${todayInTz(timezone)}`;
       if (!sessionStorage.getItem(key)) {
         sessionStorage.setItem(key, '1');
         toast.message(`${due.length} subscription${due.length>1?'s':''} renewing soon`, {
