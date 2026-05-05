@@ -8,6 +8,7 @@ import {
 } from '@/hooks/useFinance';
 import { CurrencyAmount, formatMoney } from './CurrencyAmount';
 import { QuickAdd } from './QuickAdd';
+import { BudgetsCard } from './BudgetsCard';
 import { Currency } from '@/data/financeDefaults';
 
 function daysUntil(date: string) {
@@ -132,6 +133,9 @@ export function FinanceDashboard() {
           </div>
         </div>
       )}
+
+      {/* Monthly budgets */}
+      <BudgetsCard />
 
       {/* Outstanding loans */}
       {(Object.keys(outstanding.taken).length > 0 || Object.keys(outstanding.given).length > 0) && (
