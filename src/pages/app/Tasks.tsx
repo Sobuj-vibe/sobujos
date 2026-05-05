@@ -53,7 +53,7 @@ export default function Tasks() {
 
         {todayTasks.length > 0 && (
           <section className="space-y-2">
-            <h2 className="text-sm font-semibold text-muted-foreground px-1">{t('tasks.todayTitle')} — {t('common.today')}</h2>
+            <h2 className="text-sm font-semibold text-muted-foreground px-1">Today's Task Summary</h2>
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-2xl bg-card border border-border p-4 shadow-soft">
                 <p className="text-xs text-muted-foreground">Total</p>
