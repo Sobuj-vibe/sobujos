@@ -94,6 +94,30 @@ export function ContactDetailPanel({ contactId, onCreate, onNavigate }: { contac
   const RELATION_PRESETS = ['father of', 'mother of', 'son of', 'daughter of', 'brother of', 'sister of', 'spouse of', 'friend of', 'business partner of', 'colleague of', 'client of', 'mentor of'];
   const genderDisplay = contact.gender ? contact.gender.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()) : null;
 
+  const inverseRelation = (rel: string, otherGender?: string | null): string => {
+    const r = rel.toLowerCase().trim();
+    const g = (otherGender || '').toLowerCase();
+    const map: Record<string, string> = {
+      'father of': g === 'male' ? 'son of' : g === 'female' ? 'daughter of' : 'child of',
+      'mother of': g === 'male' ? 'son of' : g === 'female' ? 'daughter of' : 'child of',
+      'son of': g === 'male' ? 'father of' : g === 'female' ? 'mother of' : 'parent of',
+      'daughter of': g === 'male' ? 'father of' : g === 'female' ? 'mother of' : 'parent of',
+      'brother of': g === 'male' ? 'brother of' : g === 'female' ? 'sister of' : 'sibling of',
+      'sister of': g === 'male' ? 'brother of' : g === 'female' ? 'sister of' : 'sibling of',
+      'spouse of': 'spouse of',
+      'husband of': 'wife of',
+      'wife of': 'husband of',
+      'friend of': 'friend of',
+      'business partner of': 'business partner of',
+      'colleague of': 'colleague of',
+      'mentor of': 'mentee of',
+      'mentee of': 'mentor of',
+      'client of': 'service provider of',
+      'service provider of': 'client of',
+    };
+    return map[r] || r;
+  };
+
   return (
     <div className="h-full overflow-y-auto p-6 space-y-5">
       {/* Header */}
