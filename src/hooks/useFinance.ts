@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { todayInTz } from '@/lib/datetime';
 import {
   DEFAULT_INCOME_CATEGORIES,
   DEFAULT_EXPENSE_CATEGORIES,
@@ -346,7 +348,7 @@ export function nextRenewal(date: string, freq: Frequency): string {
 
 export function useRecurring() {
   const { user } = useAuth();
-  // Lazy import to avoid circular hook deps if any
+  const { timezone } = useTimezone();
   const [items, setItems] = useState<Recurring[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -387,7 +389,7 @@ export function useRecurring() {
   /** Auto-post any recurring items whose next_renewal_date has passed and roll forward. */
   const autoPostDue = useCallback(async () => {
     if (!user) return;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayInTz(timezone);
     const due = items.filter((r) => r.auto_post && r.next_renewal_date <= today);
     for (const r of due) {
       await supabase.from('finance_transactions').insert({
@@ -410,7 +412,7 @@ export function useRecurring() {
       await refresh();
       emit();
     }
-  }, [user, items, refresh]);
+  }, [user, items, refresh, timezone]);
 
   useEffect(() => {
     if (!loading && items.length > 0) autoPostDue();
