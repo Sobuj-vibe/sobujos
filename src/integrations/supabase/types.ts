@@ -323,6 +323,219 @@ export type Database = {
           },
         ]
       }
+      goal_milestones: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          goal_id: string
+          id: string
+          position: number
+          target_date: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          goal_id: string
+          id?: string
+          position?: number
+          target_date?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          goal_id?: string
+          id?: string
+          position?: number
+          target_date?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      goal_notes: {
+        Row: {
+          body: string
+          created_at: string
+          goal_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          goal_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          goal_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      goals: {
+        Row: {
+          category: string
+          completed_at: string | null
+          created_at: string
+          current_value: number
+          deadline: string | null
+          description: string | null
+          finance_category_id: string | null
+          id: string
+          start_date: string
+          status: Database["public"]["Enums"]["goal_status"]
+          target_unit: string | null
+          target_value: number | null
+          title: string
+          type: Database["public"]["Enums"]["goal_type"]
+          user_id: string
+          weekly_review: boolean
+        }
+        Insert: {
+          category?: string
+          completed_at?: string | null
+          created_at?: string
+          current_value?: number
+          deadline?: string | null
+          description?: string | null
+          finance_category_id?: string | null
+          id?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["goal_status"]
+          target_unit?: string | null
+          target_value?: number | null
+          title: string
+          type?: Database["public"]["Enums"]["goal_type"]
+          user_id: string
+          weekly_review?: boolean
+        }
+        Update: {
+          category?: string
+          completed_at?: string | null
+          created_at?: string
+          current_value?: number
+          deadline?: string | null
+          description?: string | null
+          finance_category_id?: string | null
+          id?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["goal_status"]
+          target_unit?: string | null
+          target_value?: number | null
+          title?: string
+          type?: Database["public"]["Enums"]["goal_type"]
+          user_id?: string
+          weekly_review?: boolean
+        }
+        Relationships: []
+      }
+      habit_logs: {
+        Row: {
+          date: string
+          habit_id: string
+          id: string
+          logged_at: string
+          note: string | null
+          status: Database["public"]["Enums"]["habit_log_status"]
+          user_id: string
+          value: number
+        }
+        Insert: {
+          date: string
+          habit_id: string
+          id?: string
+          logged_at?: string
+          note?: string | null
+          status?: Database["public"]["Enums"]["habit_log_status"]
+          user_id: string
+          value?: number
+        }
+        Update: {
+          date?: string
+          habit_id?: string
+          id?: string
+          logged_at?: string
+          note?: string | null
+          status?: Database["public"]["Enums"]["habit_log_status"]
+          user_id?: string
+          value?: number
+        }
+        Relationships: []
+      }
+      habits: {
+        Row: {
+          color: string
+          created_at: string
+          freezes_per_month: number
+          goal_id: string | null
+          icon: string
+          id: string
+          name: string
+          position: number
+          reminder_time: string | null
+          schedule_days: number[] | null
+          schedule_kind: Database["public"]["Enums"]["habit_schedule_kind"]
+          status: Database["public"]["Enums"]["habit_status"]
+          target_unit: string | null
+          target_value: number | null
+          time_of_day: Database["public"]["Enums"]["habit_time_of_day"]
+          type: Database["public"]["Enums"]["habit_type"]
+          user_id: string
+          weekly_count: number | null
+          why: string | null
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          freezes_per_month?: number
+          goal_id?: string | null
+          icon?: string
+          id?: string
+          name: string
+          position?: number
+          reminder_time?: string | null
+          schedule_days?: number[] | null
+          schedule_kind?: Database["public"]["Enums"]["habit_schedule_kind"]
+          status?: Database["public"]["Enums"]["habit_status"]
+          target_unit?: string | null
+          target_value?: number | null
+          time_of_day?: Database["public"]["Enums"]["habit_time_of_day"]
+          type?: Database["public"]["Enums"]["habit_type"]
+          user_id: string
+          weekly_count?: number | null
+          why?: string | null
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          freezes_per_month?: number
+          goal_id?: string | null
+          icon?: string
+          id?: string
+          name?: string
+          position?: number
+          reminder_time?: string | null
+          schedule_days?: number[] | null
+          schedule_kind?: Database["public"]["Enums"]["habit_schedule_kind"]
+          status?: Database["public"]["Enums"]["habit_status"]
+          target_unit?: string | null
+          target_value?: number | null
+          time_of_day?: Database["public"]["Enums"]["habit_time_of_day"]
+          type?: Database["public"]["Enums"]["habit_type"]
+          user_id?: string
+          weekly_count?: number | null
+          why?: string | null
+        }
+        Relationships: []
+      }
       hadith_daily: {
         Row: {
           created_at: string
@@ -647,6 +860,13 @@ export type Database = {
       app_role: "admin" | "user"
       finance_currency: "BDT" | "CNY" | "USD"
       finance_kind: "income" | "expense"
+      goal_status: "active" | "completed" | "archived"
+      goal_type: "outcome" | "process" | "project"
+      habit_log_status: "done" | "partial" | "skipped" | "frozen"
+      habit_schedule_kind: "daily" | "weekdays" | "weekly_count"
+      habit_status: "active" | "paused" | "archived"
+      habit_time_of_day: "morning" | "afternoon" | "evening" | "anytime"
+      habit_type: "boolean" | "counter" | "duration"
       loan_direction: "taken" | "given"
       prayer_name: "fajr" | "dhuhr" | "asr" | "maghrib" | "isha"
       prayer_status: "on_time" | "late" | "qaza"
@@ -781,6 +1001,13 @@ export const Constants = {
       app_role: ["admin", "user"],
       finance_currency: ["BDT", "CNY", "USD"],
       finance_kind: ["income", "expense"],
+      goal_status: ["active", "completed", "archived"],
+      goal_type: ["outcome", "process", "project"],
+      habit_log_status: ["done", "partial", "skipped", "frozen"],
+      habit_schedule_kind: ["daily", "weekdays", "weekly_count"],
+      habit_status: ["active", "paused", "archived"],
+      habit_time_of_day: ["morning", "afternoon", "evening", "anytime"],
+      habit_type: ["boolean", "counter", "duration"],
       loan_direction: ["taken", "given"],
       prayer_name: ["fajr", "dhuhr", "asr", "maghrib", "isha"],
       prayer_status: ["on_time", "late", "qaza"],
