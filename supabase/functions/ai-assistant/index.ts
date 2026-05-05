@@ -310,6 +310,125 @@ const tools = [
       parameters: { type: "object", properties: { days: { type: "number" } } },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "list_habits",
+      description: "List the user's habits with id, name, type, target, schedule, status.",
+      parameters: { type: "object", properties: { only_active: { type: "boolean" } } },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_habit",
+      description: "Create a new habit. type: boolean (done/not), counter, or duration.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          type: { type: "string", enum: ["boolean","counter","duration"] },
+          target_value: { type: "number" },
+          target_unit: { type: "string" },
+          schedule_kind: { type: "string", enum: ["daily","weekdays","weekly_count"] },
+          schedule_days: { type: "array", items: { type: "number" }, description: "0=Sun..6=Sat" },
+          weekly_count: { type: "number" },
+          time_of_day: { type: "string", enum: ["morning","afternoon","evening","anytime"] },
+          icon: { type: "string" },
+          color: { type: "string" },
+          why: { type: "string" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "log_habit",
+      description: "Log progress on a habit for a date (default today). For boolean: marks done. For counter/duration: pass value.",
+      parameters: {
+        type: "object",
+        properties: {
+          habit_name: { type: "string", description: "Match by name (case-insensitive)" },
+          habit_id: { type: "string" },
+          value: { type: "number" },
+          status: { type: "string", enum: ["done","partial","skipped","frozen"] },
+          date: { type: "string", description: "YYYY-MM-DD" },
+          note: { type: "string" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_today_habits",
+      description: "Returns today's scheduled habits with their current log status.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_goals",
+      description: "List goals with progress.",
+      parameters: { type: "object", properties: { only_active: { type: "boolean" } } },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_goal",
+      description: "Create a new goal.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          description: { type: "string" },
+          category: { type: "string", enum: ["health","career","learning","finance","spiritual","personal","other"] },
+          type: { type: "string", enum: ["outcome","process","project"] },
+          target_value: { type: "number" },
+          target_unit: { type: "string" },
+          deadline: { type: "string", description: "YYYY-MM-DD" },
+        },
+        required: ["title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_milestone",
+      description: "Add a milestone to a goal. Provide goal_id (preferred) or goal_title to match.",
+      parameters: {
+        type: "object",
+        properties: {
+          goal_id: { type: "string" },
+          goal_title: { type: "string" },
+          title: { type: "string" },
+          target_date: { type: "string", description: "YYYY-MM-DD" },
+        },
+        required: ["title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_goal_progress",
+      description: "Set the current_value of a goal. Resolve by id or title.",
+      parameters: {
+        type: "object",
+        properties: {
+          goal_id: { type: "string" },
+          goal_title: { type: "string" },
+          current_value: { type: "number" },
+        },
+        required: ["current_value"],
+      },
+    },
+  },
 ];
 
 async function runTool(name: string, args: any, supabase: any, userId: string) {
