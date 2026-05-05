@@ -34,6 +34,26 @@ export function todayInTz(tz: string = 'UTC'): string {
   return isoDateInTz(new Date(), tz);
 }
 
+/** Local "datetime-local" input value (YYYY-MM-DDTHH:MM) in the given timezone. */
+export function localDateTimeInputInTz(date: Date = new Date(), tz: string = 'UTC'): string {
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(date);
+    const get = (type: string) => parts.find((p) => p.type === type)?.value || '00';
+    // en-CA gives "YYYY-MM-DD, HH:MM" but using formatToParts is robust.
+    return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
+  } catch {
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  }
+}
+
 /** Add `days` to a YYYY-MM-DD string and return a new YYYY-MM-DD. Pure calendar math, no TZ shifts. */
 export function addDaysIso(iso: string, days: number): string {
   const [y, m, d] = iso.split('-').map(Number);
