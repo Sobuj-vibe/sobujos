@@ -11,6 +11,7 @@ import { ContactsList } from '@/components/contacts/ContactsList';
 import { GroupsView } from '@/components/contacts/GroupsView';
 import { ContactFormSheet } from '@/components/contacts/ContactFormSheet';
 import { ContactDetailSheet } from '@/components/contacts/ContactDetailSheet';
+import { ContactsDesktop } from '@/components/contacts/ContactsDesktop';
 
 export default function Contacts() {
   const { user } = useAuth();
@@ -43,10 +44,23 @@ export default function Contacts() {
 
   return (
     <div className="pb-24">
-      <AppBar title="Contacts" subtitle={`${contacts.length} people`} right={
-        <Button size="icon" variant="ghost" onClick={() => openCreate()}><Plus className="h-5 w-5" /></Button>
-      } />
-      <main className="max-w-md mx-auto px-3 pt-16 md:pt-3 space-y-4">
+      <div className="md:hidden">
+        <AppBar title="Contacts" subtitle={`${contacts.length} people`} right={
+          <Button size="icon" variant="ghost" onClick={() => openCreate()}><Plus className="h-5 w-5" /></Button>
+        } />
+      </div>
+      <div className="hidden md:flex md:items-center md:justify-between md:mb-4">
+        <div>
+          <h1 className="text-2xl font-bold">Contacts</h1>
+          <p className="text-sm text-muted-foreground">{contacts.length} people</p>
+        </div>
+      </div>
+
+      {/* DESKTOP — split view */}
+      <ContactsDesktop onCreate={openCreate} />
+
+      {/* MOBILE — tabbed view */}
+      <main className="md:hidden max-w-md mx-auto px-3 pt-16 space-y-4">
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="w-full grid grid-cols-4">
             <TabsTrigger value="all">All</TabsTrigger>
