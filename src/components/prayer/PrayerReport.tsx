@@ -1,17 +1,20 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PRAYERS, isoDate, usePrayerLogs } from '@/hooks/usePrayer';
+import { PRAYERS, usePrayerLogs } from '@/hooks/usePrayer';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { isoDateInTz } from '@/lib/datetime';
 
 export function PrayerReport() {
   const { t } = useTranslation();
   const { logs } = usePrayerLogs(30);
+  const { timezone } = useTimezone();
 
   const stats = useMemo(() => {
     const today = new Date();
     const start = new Date();
     start.setDate(today.getDate() - 29);
     const days: string[] = [];
-    for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) days.push(isoDate(new Date(d)));
+    for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) days.push(isoDateInTz(new Date(d), timezone));
     const total = days.length;
 
     return PRAYERS.map((p) => {
@@ -21,7 +24,7 @@ export function PrayerReport() {
       const pct = Math.round(((onTime + late) / total) * 100);
       return { p, onTime, late, qaza, pct, total };
     });
-  }, [logs]);
+  }, [logs, timezone]);
 
   return (
     <div className="rounded-2xl bg-card border border-border p-4 shadow-soft">
