@@ -251,6 +251,31 @@ export function ContactFormSheet({
         <form onSubmit={submit} className="space-y-5 mt-4 pb-8">
           {/* Identity */}
           <div className="space-y-3">
+            {/* Avatar */}
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" className="h-20 w-20 rounded-full object-cover border border-border" />
+                ) : (
+                  <div className="h-20 w-20 rounded-full bg-gradient-to-br from-indigo-400 to-purple-400 text-white flex items-center justify-center font-semibold text-xl">
+                    {initialsPreview}
+                  </div>
+                )}
+                <label className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer shadow-soft tap">
+                  {uploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                  <input type="file" accept="image/*" className="hidden" onChange={uploadAvatar} disabled={uploadingAvatar} />
+                </label>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                <p>Tap the camera to {avatarUrl ? 'change' : 'add'} a photo.</p>
+                {avatarUrl && (
+                  <button type="button" onClick={() => setAvatarUrl(null)} className="mt-1 inline-flex items-center gap-1 text-destructive tap">
+                    <X className="h-3 w-3" /> Remove
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="fn">Full name *</Label>
               <Input id="fn" value={fullName} onChange={(e) => setFullName(e.target.value)} required autoFocus maxLength={120} />
@@ -261,8 +286,17 @@ export function ContactFormSheet({
                 <Input id="nn" value={nickname} onChange={(e) => setNickname(e.target.value)} maxLength={60} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="gn">Gender</Label>
-                <Input id="gn" value={gender} onChange={(e) => setGender(e.target.value)} maxLength={20} placeholder="male / female / …" />
+                <Label>Gender</Label>
+                <Select value={gender || 'unset'} onValueChange={(v) => setGender(v === 'unset' ? '' : v)}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unset">—</SelectItem>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -271,8 +305,16 @@ export function ContactFormSheet({
                 <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="bg">Blood</Label>
-                <Input id="bg" value={bloodGroup} onChange={(e) => setBloodGroup(e.target.value)} maxLength={5} placeholder="A+" />
+                <Label>Blood</Label>
+                <Select value={bloodGroup || 'unset'} onValueChange={(v) => setBloodGroup(v === 'unset' ? '' : v)}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unset">—</SelectItem>
+                    {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map((b) => (
+                      <SelectItem key={b} value={b}>{b}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="loc">City</Label>
