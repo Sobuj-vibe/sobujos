@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useContactDetail, useContactGroups, useContacts } from '@/hooks/useContacts';
-import { Phone, Mail, MapPin, Globe, Edit3, Star, Lock, MessageCircle, Copy, Trash2, Users as UsersIcon, UserPlus } from 'lucide-react';
+import { Phone, Mail, MapPin, Globe, Edit3, Star, Lock, MessageCircle, Copy, Trash2, Users as UsersIcon, UserPlus, X } from 'lucide-react';
 import { SocialIcon } from './SocialIcon';
 import { NotesList } from './NotesList';
 import { EventsTimeline } from './EventsTimeline';
@@ -17,7 +17,7 @@ import { Plus } from 'lucide-react';
 
 type Loan = Tables<'finance_loans'>;
 
-export function ContactDetailPanel({ contactId, onCreate }: { contactId: string | null; onCreate?: () => void }) {
+export function ContactDetailPanel({ contactId, onCreate, onNavigate }: { contactId: string | null; onCreate?: () => void; onNavigate?: (id: string) => void }) {
   const { user } = useAuth();
   const { contact, phones, emails, addresses, socials, notes, events, fieldValues, tagIds, relations, refresh } = useContactDetail(contactId);
   const { groups, subgroups } = useContactGroups();
@@ -29,6 +29,7 @@ export function ContactDetailPanel({ contactId, onCreate }: { contactId: string 
   const [customFields, setCustomFields] = useState<{ id: string; label: string; type: string }[]>([]);
   const [relTo, setRelTo] = useState('');
   const [relName, setRelName] = useState('');
+  const [showRelForm, setShowRelForm] = useState(false);
 
   useEffect(() => {
     if (!contactId || !user) return;
