@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.prayer-hadith]
 verify_jwt = false
+
+[functions.finance-ocr]
+verify_jwt = false
