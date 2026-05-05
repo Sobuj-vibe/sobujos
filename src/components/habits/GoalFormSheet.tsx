@@ -8,6 +8,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Goal, GoalType, GOAL_CATEGORIES, useGoals } from '@/hooks/useGoals';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { todayInTz } from '@/lib/datetime';
 
 export function GoalFormSheet({
   open, onOpenChange, goal,
@@ -18,6 +20,7 @@ export function GoalFormSheet({
 }) {
   const { t } = useTranslation();
   const { add, update, remove } = useGoals();
+  const { timezone } = useTimezone();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -25,7 +28,7 @@ export function GoalFormSheet({
   const [type, setType] = useState<GoalType>('outcome');
   const [target, setTarget] = useState('');
   const [unit, setUnit] = useState('');
-  const [start, setStart] = useState(new Date().toISOString().slice(0, 10));
+  const [start, setStart] = useState(() => todayInTz(timezone));
   const [deadline, setDeadline] = useState('');
   const [weeklyReview, setWeeklyReview] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -44,7 +47,7 @@ export function GoalFormSheet({
         setWeeklyReview(goal.weekly_review);
       } else {
         setTitle(''); setDescription(''); setCategory('personal'); setType('outcome');
-        setTarget(''); setUnit(''); setStart(new Date().toISOString().slice(0, 10));
+        setTarget(''); setUnit(''); setStart(todayInTz(timezone));
         setDeadline(''); setWeeklyReview(false);
       }
     }
