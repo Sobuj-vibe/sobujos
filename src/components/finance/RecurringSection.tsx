@@ -15,6 +15,8 @@ import { CurrencyAmount } from './CurrencyAmount';
 import { Plus, Trash2, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { todayInTz } from '@/lib/datetime';
 
 function daysUntil(date: string) {
   const d = new Date(date);
@@ -57,14 +59,15 @@ function RecurringForm({ open, onOpenChange }: { open: boolean; onOpenChange: (b
   const { t } = useTranslation();
   const { add } = useRecurring();
   const { categories } = useFinanceCategories();
+  const { timezone } = useTimezone();
   const [kind, setKind] = useState<FinanceKind>('expense');
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<Currency>('BDT');
   const [method, setMethod] = useState<string>('Cash');
   const [categoryId, setCategoryId] = useState<string>('');
-  const [start, setStart] = useState(new Date().toISOString().slice(0, 10));
-  const [next, setNext] = useState(() => nextRenewal(new Date().toISOString().slice(0, 10), 'monthly'));
+  const [start, setStart] = useState(() => todayInTz(timezone));
+  const [next, setNext] = useState(() => nextRenewal(todayInTz(timezone), 'monthly'));
   const [freq, setFreq] = useState<Frequency>('monthly');
   const [autoPost, setAutoPost] = useState(false);
   const [note, setNote] = useState('');
