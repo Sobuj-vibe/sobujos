@@ -8,6 +8,13 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { TodayTaskItem, useSubtasksForTasks } from '@/components/tasks/TodayTaskItem';
 import { cn } from '@/lib/utils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 type ViewMode = 'today' | 'tomorrow' | 'week';
 
@@ -17,6 +24,7 @@ export default function Tasks() {
   const { tasks, refresh: refreshTasks } = useTasks();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<ViewMode>('today');
+  const [groupFilter, setGroupFilter] = useState<string>('all');
 
   const { today, tomorrow, weekEnd } = useMemo(() => {
     const d = new Date();
@@ -36,8 +44,14 @@ export default function Tasks() {
   };
 
   const viewTasks = useMemo(
-    () => tasks.filter((x) => x.due_date && inRange(x.due_date)),
-    [tasks, view, today, tomorrow, weekEnd]
+    () =>
+      tasks.filter(
+        (x) =>
+          x.due_date &&
+          inRange(x.due_date) &&
+          (groupFilter === 'all' || x.group_id === groupFilter)
+      ),
+    [tasks, view, today, tomorrow, weekEnd, groupFilter]
   );
   const openViewTasks = useMemo(
     () => viewTasks.filter((x) => !x.completed_at),
@@ -46,6 +60,12 @@ export default function Tasks() {
 
   const viewIds = useMemo(() => viewTasks.map((t) => t.id), [viewTasks]);
   const { subtasksByTask } = useSubtasksForTasks(viewIds);
+
+  const groupsById = useMemo(() => {
+    const m: Record<string, typeof groups[number]> = {};
+    groups.forEach((g) => (m[g.id] = g));
+    return m;
+  }, [groups]);
 
   const summary = useMemo(() => {
     const totalTasks = viewTasks.length;
@@ -103,22 +123,37 @@ export default function Tasks() {
           </Button>
         </div>
 
-        {/* View toggle */}
-        <div className="inline-flex items-center bg-muted rounded-full p-1 text-sm">
-          {(['today', 'tomorrow', 'week'] as ViewMode[]).map((v) => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={cn(
-                'px-4 py-1.5 rounded-full font-medium tap transition-colors',
-                view === v
-                  ? 'bg-card text-foreground shadow-soft'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {v === 'today' ? 'Today' : v === 'tomorrow' ? 'Tomorrow' : 'This Week'}
-            </button>
-          ))}
+        {/* View toggle + group filter */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="inline-flex items-center bg-muted rounded-full p-1 text-sm">
+            {(['today', 'tomorrow', 'week'] as ViewMode[]).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={cn(
+                  'px-4 py-1.5 rounded-full font-medium tap transition-colors',
+                  view === v
+                    ? 'bg-card text-foreground shadow-soft'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {v === 'today' ? 'Today' : v === 'tomorrow' ? 'Tomorrow' : 'This Week'}
+              </button>
+            ))}
+          </div>
+          <Select value={groupFilter} onValueChange={setGroupFilter}>
+            <SelectTrigger className="h-9 w-auto min-w-[160px] rounded-full bg-muted border-0 text-sm">
+              <SelectValue placeholder="All groups" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All groups</SelectItem>
+              {groups.map((g) => (
+                <SelectItem key={g.id} value={g.id}>
+                  {g.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {viewTasks.length > 0 && (
@@ -166,6 +201,7 @@ export default function Tasks() {
                   task={task}
                   subtasks={subtasksByTask[task.id] || []}
                   onChanged={refreshTasks}
+                  group={groupsById[task.group_id]}
                 />
               ))}
             </div>
