@@ -3,50 +3,90 @@ import { AppBar } from '@/components/app/AppBar';
 import { useTaskGroups, useTasks } from '@/hooks/useTasks';
 import { GroupCard } from '@/components/tasks/GroupCard';
 import { GroupFormSheet } from '@/components/tasks/GroupFormSheet';
-import { Plus, FolderPlus, ListTodo } from 'lucide-react';
+import { FolderPlus, ListTodo } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { TodayTaskItem, useSubtasksForTasks } from '@/components/tasks/TodayTaskItem';
+import { cn } from '@/lib/utils';
+
+type ViewMode = 'today' | 'tomorrow' | 'week';
 
 export default function Tasks() {
   const { t } = useTranslation();
   const { groups, refresh } = useTaskGroups();
   const { tasks, refresh: refreshTasks } = useTasks();
   const [open, setOpen] = useState(false);
+  const [view, setView] = useState<ViewMode>('today');
 
-  const today = new Date().toISOString().slice(0, 10);
-  const todayTasks = useMemo(
-    () => tasks.filter((x) => !x.completed_at && x.due_date && x.due_date <= today),
-    [tasks, today]
+  const { today, tomorrow, weekEnd } = useMemo(() => {
+    const d = new Date();
+    const iso = (x: Date) => x.toISOString().slice(0, 10);
+    const tmr = new Date(d);
+    tmr.setDate(d.getDate() + 1);
+    const wk = new Date(d);
+    wk.setDate(d.getDate() + 6);
+    return { today: iso(d), tomorrow: iso(tmr), weekEnd: iso(wk) };
+  }, []);
+
+  // Range of dates included in the current view (inclusive)
+  const inRange = (date: string) => {
+    if (view === 'today') return date <= today;
+    if (view === 'tomorrow') return date === tomorrow;
+    return date <= weekEnd; // week: from today through next 6 days, includes overdue
+  };
+
+  const viewTasks = useMemo(
+    () => tasks.filter((x) => x.due_date && inRange(x.due_date)),
+    [tasks, view, today, tomorrow, weekEnd]
+  );
+  const openViewTasks = useMemo(
+    () => viewTasks.filter((x) => !x.completed_at),
+    [viewTasks]
   );
 
-  const dueTodayTasks = useMemo(
-    () => tasks.filter((x) => x.due_date && x.due_date <= today),
-    [tasks, today]
-  );
-  const dueTodayIds = useMemo(() => dueTodayTasks.map((t) => t.id), [dueTodayTasks]);
-  const { subtasksByTask } = useSubtasksForTasks(dueTodayIds);
+  const viewIds = useMemo(() => viewTasks.map((t) => t.id), [viewTasks]);
+  const { subtasksByTask } = useSubtasksForTasks(viewIds);
 
   const summary = useMemo(() => {
-    let total = 0;
-    let completed = 0;
-    dueTodayTasks.forEach((t) => {
-      const subs = subtasksByTask[t.id] || [];
+    const totalTasks = viewTasks.length;
+    const completedTasks = viewTasks.filter((x) => x.completed_at).length;
+
+    let totalSubs = 0;
+    let completedSubs = 0;
+    viewTasks.forEach((tk) => {
+      const subs = subtasksByTask[tk.id] || [];
+      totalSubs += subs.length;
+      completedSubs += subs.filter((s) => !!s.completed_at).length;
+    });
+    const remainingSubs = totalSubs - completedSubs;
+
+    // Overall completion: combine tasks with no subtasks + subtasks of those that have any
+    let unitsTotal = 0;
+    let unitsDone = 0;
+    viewTasks.forEach((tk) => {
+      const subs = subtasksByTask[tk.id] || [];
       if (subs.length > 0) {
-        total += subs.length;
-        completed += subs.filter((s) => !!s.completed_at).length;
+        unitsTotal += subs.length;
+        unitsDone += subs.filter((s) => !!s.completed_at).length;
       } else {
-        total += 1;
-        if (t.completed_at) completed += 1;
+        unitsTotal += 1;
+        if (tk.completed_at) unitsDone += 1;
       }
     });
-    const remaining = total - completed;
-    const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
-    return { total, completed, remaining, completedPct: pct(completed), remainingPct: pct(remaining) };
-  }, [dueTodayTasks, subtasksByTask]);
+    const overallPct = unitsTotal ? Math.round((unitsDone / unitsTotal) * 100) : 0;
+
+    return {
+      totalTasks,
+      completedTasks,
+      remainingTasks: totalTasks - completedTasks,
+      totalSubs,
+      completedSubs,
+      remainingSubs,
+      overallPct,
+    };
+  }, [viewTasks, subtasksByTask]);
+
+  const viewLabel = view === 'today' ? "Today" : view === 'tomorrow' ? 'Tomorrow' : 'This Week';
 
   return (
     <div>
@@ -63,33 +103,64 @@ export default function Tasks() {
           </Button>
         </div>
 
-        {todayTasks.length > 0 && (
+        {/* View toggle */}
+        <div className="inline-flex items-center bg-muted rounded-full p-1 text-sm">
+          {(['today', 'tomorrow', 'week'] as ViewMode[]).map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={cn(
+                'px-4 py-1.5 rounded-full font-medium tap transition-colors',
+                view === v
+                  ? 'bg-card text-foreground shadow-soft'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {v === 'today' ? 'Today' : v === 'tomorrow' ? 'Tomorrow' : 'This Week'}
+            </button>
+          ))}
+        </div>
+
+        {viewTasks.length > 0 && (
           <section className="space-y-2">
-            <h2 className="text-sm font-semibold text-muted-foreground px-1">Today's Task Summary</h2>
-            <div className="grid grid-cols-3 gap-3">
+            <h2 className="text-sm font-semibold text-muted-foreground px-1">
+              {viewLabel}'s Task Summary
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="rounded-2xl bg-card border border-border p-4 shadow-soft">
-                <p className="text-xs text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold mt-1">{summary.total}</p>
+                <p className="text-xs text-muted-foreground">Tasks</p>
+                <p className="text-2xl font-bold mt-1">{summary.totalTasks}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  <span className="text-emerald-500">{summary.completedTasks} done</span>
+                  {' · '}
+                  <span>{summary.remainingTasks} left</span>
+                </p>
               </div>
               <div className="rounded-2xl bg-card border border-border p-4 shadow-soft">
-                <p className="text-xs text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold mt-1 text-emerald-500">{summary.completed}</p>
-                <p className="text-xs text-muted-foreground">{summary.completedPct}%</p>
+                <p className="text-xs text-muted-foreground">Total subtasks</p>
+                <p className="text-2xl font-bold mt-1">{summary.totalSubs}</p>
               </div>
               <div className="rounded-2xl bg-card border border-border p-4 shadow-soft">
-                <p className="text-xs text-muted-foreground">Remaining</p>
-                <p className="text-2xl font-bold mt-1 text-primary">{summary.remaining}</p>
-                <p className="text-xs text-muted-foreground">{summary.remainingPct}%</p>
+                <p className="text-xs text-muted-foreground">Completed subtasks</p>
+                <p className="text-2xl font-bold mt-1 text-emerald-500">{summary.completedSubs}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {summary.totalSubs ? Math.round((summary.completedSubs / summary.totalSubs) * 100) : 0}%
+                </p>
+              </div>
+              <div className="rounded-2xl bg-card border border-border p-4 shadow-soft">
+                <p className="text-xs text-muted-foreground">Overall completion</p>
+                <p className="text-2xl font-bold mt-1 text-primary">{summary.overallPct}%</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{summary.remainingSubs} subtasks left</p>
               </div>
             </div>
           </section>
         )}
 
-        {todayTasks.length > 0 && (
+        {openViewTasks.length > 0 && (
           <section className="space-y-2">
-            <h2 className="text-sm font-semibold text-muted-foreground px-1">{t('tasks.todayTitle')}</h2>
+            <h2 className="text-sm font-semibold text-muted-foreground px-1">{viewLabel}'s tasks</h2>
             <div className="rounded-2xl bg-card border border-border shadow-soft divide-y divide-border">
-              {todayTasks.slice(0, 5).map((task) => (
+              {openViewTasks.slice(0, 8).map((task) => (
                 <TodayTaskItem
                   key={task.id}
                   task={task}

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,7 +15,6 @@ export function TodayTaskItem({
   subtasks: Subtask[];
   onChanged: () => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
   const hasSubs = subtasks.length > 0;
   const completedSubs = subtasks.filter((s) => !!s.completed_at).length;
   const pct = hasSubs ? Math.round((completedSubs / subtasks.length) * 100) : 0;
@@ -47,15 +45,6 @@ export function TodayTaskItem({
             {task.title}
           </p>
         </Link>
-        {hasSubs && (
-          <button
-            onClick={() => setExpanded((e) => !e)}
-            className="p-1 text-muted-foreground tap shrink-0"
-            aria-label="Toggle subtasks"
-          >
-            {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          </button>
-        )}
       </div>
       {hasSubs && (
         <div className="mt-2 pl-7 pr-1">
@@ -65,23 +54,21 @@ export function TodayTaskItem({
               {completedSubs}/{subtasks.length} · {pct}%
             </span>
           </div>
-          {expanded && (
-            <div className="mt-2 space-y-1.5">
-              {subtasks.map((s) => (
-                <div key={s.id} className="flex items-center gap-2">
-                  <Checkbox checked={!!s.completed_at} onCheckedChange={(v) => toggleSub(s.id, !!v)} />
-                  <span
-                    className={cn(
-                      'text-sm flex-1',
-                      s.completed_at && 'line-through text-muted-foreground'
-                    )}
-                  >
-                    {s.title}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="mt-2 space-y-1.5">
+            {subtasks.map((s) => (
+              <div key={s.id} className="flex items-center gap-2">
+                <Checkbox checked={!!s.completed_at} onCheckedChange={(v) => toggleSub(s.id, !!v)} />
+                <span
+                  className={cn(
+                    'text-xs flex-1 text-muted-foreground',
+                    s.completed_at && 'line-through opacity-70'
+                  )}
+                >
+                  {s.title}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
