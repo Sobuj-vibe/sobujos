@@ -106,6 +106,11 @@ export const bn = {
     version: 'সংস্করণ',
     saved: 'সংরক্ষিত',
     saveFailed: 'পরিবর্তন সংরক্ষণ করা যায়নি',
+    timezone: 'টাইমজোন',
+    timezoneHelp: "অ্যাপে 'আজ' আপনার লোকাল ক্যালেন্ডারের দিনের সাথে মিলবে।",
+    deviceTimezone: 'ডিভাইস',
+    todayHere: 'এখানে আজ',
+    useDeviceTimezone: 'ডিভাইস টাইমজোন ব্যবহার করুন',
   },
   ai: {
     title: 'AI সহকারী',
