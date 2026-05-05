@@ -8,6 +8,7 @@ export const bn = {
     prayer: 'নামাজ',
     finance: 'অর্থ',
     habits: 'অভ্যাস',
+    contacts: 'পরিচিতি',
     profile: 'প্রোফাইল',
   },
   auth: {

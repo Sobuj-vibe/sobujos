@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { CheckSquare, Moon, Wallet, User, Target } from 'lucide-react';
+import { CheckSquare, Moon, Wallet, User, Target, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
@@ -8,6 +8,7 @@ const tabs = [
   { to: '/app/prayer', icon: Moon, key: 'prayer' as const },
   { to: '/app/finance', icon: Wallet, key: 'finance' as const },
   { to: '/app/habits', icon: Target, key: 'habits' as const },
+  { to: '/app/contacts', icon: Users, key: 'contacts' as const },
   { to: '/app/profile', icon: User, key: 'profile' as const },
 ];
 
@@ -15,7 +16,7 @@ export function BottomTabs() {
   const { t } = useTranslation();
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-lg border-t border-border safe-bottom shadow-elevated">
-      <div className="max-w-md mx-auto grid grid-cols-5 px-2 pt-2 pb-2">
+      <div className="max-w-md mx-auto grid grid-cols-6 px-1 pt-2 pb-2">
         {tabs.map(({ to, icon: Icon, key }) => (
           <NavLink
             key={to}

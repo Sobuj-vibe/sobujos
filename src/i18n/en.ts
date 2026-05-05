@@ -8,6 +8,7 @@ export const en = {
     prayer: 'Prayer',
     finance: 'Finance',
     habits: 'Habits',
+    contacts: 'Contacts',
     profile: 'Profile',
   },
   auth: {
