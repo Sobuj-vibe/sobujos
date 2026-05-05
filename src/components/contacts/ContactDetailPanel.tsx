@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useContactDetail, useContactGroups, useContacts } from '@/hooks/useContacts';
-import { Phone, Mail, MapPin, Globe, Edit3, Star, Lock, MessageCircle, Copy, Trash2, Users as UsersIcon, UserPlus } from 'lucide-react';
+import { Phone, Mail, MapPin, Globe, Edit3, Star, Lock, MessageCircle, Copy, Trash2, Users as UsersIcon, UserPlus, X } from 'lucide-react';
 import { SocialIcon } from './SocialIcon';
 import { NotesList } from './NotesList';
 import { EventsTimeline } from './EventsTimeline';
@@ -17,7 +17,7 @@ import { Plus } from 'lucide-react';
 
 type Loan = Tables<'finance_loans'>;
 
-export function ContactDetailPanel({ contactId, onCreate }: { contactId: string | null; onCreate?: () => void }) {
+export function ContactDetailPanel({ contactId, onCreate, onNavigate }: { contactId: string | null; onCreate?: () => void; onNavigate?: (id: string) => void }) {
   const { user } = useAuth();
   const { contact, phones, emails, addresses, socials, notes, events, fieldValues, tagIds, relations, refresh } = useContactDetail(contactId);
   const { groups, subgroups } = useContactGroups();
@@ -29,6 +29,7 @@ export function ContactDetailPanel({ contactId, onCreate }: { contactId: string 
   const [customFields, setCustomFields] = useState<{ id: string; label: string; type: string }[]>([]);
   const [relTo, setRelTo] = useState('');
   const [relName, setRelName] = useState('');
+  const [showRelForm, setShowRelForm] = useState(false);
 
   useEffect(() => {
     if (!contactId || !user) return;
@@ -92,6 +93,30 @@ export function ContactDetailPanel({ contactId, onCreate }: { contactId: string 
   const otherContacts = contacts.filter((c) => c.id !== contact.id);
   const RELATION_PRESETS = ['father of', 'mother of', 'son of', 'daughter of', 'brother of', 'sister of', 'spouse of', 'friend of', 'business partner of', 'colleague of', 'client of', 'mentor of'];
   const genderDisplay = contact.gender ? contact.gender.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()) : null;
+
+  const inverseRelation = (rel: string, otherGender?: string | null): string => {
+    const r = rel.toLowerCase().trim();
+    const g = (otherGender || '').toLowerCase();
+    const map: Record<string, string> = {
+      'father of': g === 'male' ? 'son of' : g === 'female' ? 'daughter of' : 'child of',
+      'mother of': g === 'male' ? 'son of' : g === 'female' ? 'daughter of' : 'child of',
+      'son of': g === 'male' ? 'father of' : g === 'female' ? 'mother of' : 'parent of',
+      'daughter of': g === 'male' ? 'father of' : g === 'female' ? 'mother of' : 'parent of',
+      'brother of': g === 'male' ? 'brother of' : g === 'female' ? 'sister of' : 'sibling of',
+      'sister of': g === 'male' ? 'brother of' : g === 'female' ? 'sister of' : 'sibling of',
+      'spouse of': 'spouse of',
+      'husband of': 'wife of',
+      'wife of': 'husband of',
+      'friend of': 'friend of',
+      'business partner of': 'business partner of',
+      'colleague of': 'colleague of',
+      'mentor of': 'mentee of',
+      'mentee of': 'mentor of',
+      'client of': 'service provider of',
+      'service provider of': 'client of',
+    };
+    return map[r] || r;
+  };
 
   return (
     <div className="h-full overflow-y-auto p-6 space-y-5">
@@ -263,43 +288,69 @@ export function ContactDetailPanel({ contactId, onCreate }: { contactId: string 
         <TabsContent value="linked" className="mt-4 space-y-4">
           <Section title="Relationships" icon={<UsersIcon className="h-3.5 w-3.5" />}>
             {relations.length === 0 && (
-              <p className="text-sm text-muted-foreground">No links yet. Add one below.</p>
+              <p className="text-sm text-muted-foreground">No links yet.</p>
             )}
             {relations.map((r) => {
               const otherId = r.from_contact_id === contact.id ? r.to_contact_id : r.from_contact_id;
               const other = contacts.find((c) => c.id === otherId);
               if (!other) return null;
-              const verb = r.from_contact_id === contact.id ? r.relation : `↩ ${r.relation}`;
+              const isOutgoing = r.from_contact_id === contact.id;
+              const verb = isOutgoing ? r.relation : inverseRelation(r.relation, other.gender);
+              const otherInitials = other.full_name.split(/\s+/).slice(0, 2).map((s) => s[0]).join('').toUpperCase();
               return (
                 <div key={r.id} className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground capitalize">{verb}</span>
-                  <span className="font-medium truncate flex-1">{other.full_name}</span>
+                  <span className="text-muted-foreground capitalize shrink-0">{verb}</span>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate?.(other.id)}
+                    className="flex items-center gap-2 flex-1 min-w-0 hover:bg-muted/60 rounded-md px-1.5 py-1 -my-1 tap text-left"
+                  >
+                    {other.avatar_url ? (
+                      <img src={other.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="h-6 w-6 rounded-full bg-gradient-to-br from-indigo-400 to-purple-400 text-white flex items-center justify-center text-[10px] font-semibold shrink-0">
+                        {otherInitials}
+                      </div>
+                    )}
+                    <span className="font-medium truncate text-primary">{other.full_name}</span>
+                  </button>
                   <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => unlinkRelation(r.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               );
             })}
 
-            <div className="pt-2 border-t border-border space-y-2">
-              <p className="text-xs text-muted-foreground">Add new link — "{contact.full_name} is …"</p>
-              <div className="flex flex-wrap gap-1.5">
-                {RELATION_PRESETS.map((p) => (
-                  <button key={p} type="button" onClick={() => setRelName(p)}
-                    className={`text-xs px-2 py-1 rounded-md border tap ${relName === p ? 'bg-primary text-primary-foreground border-primary' : 'border-border bg-muted/40'}`}>
-                    {p}
-                  </button>
-                ))}
+            {!showRelForm ? (
+              <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => setShowRelForm(true)}>
+                <Plus className="h-4 w-4 mr-1.5" /> Add Relation
+              </Button>
+            ) : (
+              <div className="pt-2 border-t border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">"{contact.full_name} is …"</p>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setShowRelForm(false); setRelName(''); setRelTo(''); }}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {RELATION_PRESETS.map((p) => (
+                    <button key={p} type="button" onClick={() => setRelName(p)}
+                      className={`text-xs px-2 py-1 rounded-md border tap ${relName === p ? 'bg-primary text-primary-foreground border-primary' : 'border-border bg-muted/40'}`}>
+                      {p}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input value={relName} onChange={(e) => setRelName(e.target.value)} placeholder="relation (e.g. father of)" maxLength={40} className="flex-1" />
+                  <Select value={relTo} onValueChange={setRelTo}>
+                    <SelectTrigger className="flex-1"><SelectValue placeholder="Pick contact" /></SelectTrigger>
+                    <SelectContent>
+                      {otherContacts.map((c) => <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Button size="icon" onClick={async () => { await linkRelation(); setShowRelForm(false); }} disabled={!relTo || !relName.trim()}><Plus className="h-4 w-4" /></Button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Input value={relName} onChange={(e) => setRelName(e.target.value)} placeholder="relation (e.g. father of)" maxLength={40} className="flex-1" />
-                <Select value={relTo} onValueChange={setRelTo}>
-                  <SelectTrigger className="flex-1"><SelectValue placeholder="Pick contact" /></SelectTrigger>
-                  <SelectContent>
-                    {otherContacts.map((c) => <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button size="icon" onClick={linkRelation} disabled={!relTo || !relName.trim()}><Plus className="h-4 w-4" /></Button>
-              </div>
-            </div>
+            )}
           </Section>
         </TabsContent>
       </Tabs>
