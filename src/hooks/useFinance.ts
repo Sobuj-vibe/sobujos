@@ -346,6 +346,7 @@ export function nextRenewal(date: string, freq: Frequency): string {
 
 export function useRecurring() {
   const { user } = useAuth();
+  // Lazy import to avoid circular hook deps if any
   const [items, setItems] = useState<Recurring[]>([]);
   const [loading, setLoading] = useState(true);
 
