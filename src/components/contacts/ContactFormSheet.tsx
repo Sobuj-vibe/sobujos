@@ -22,7 +22,7 @@ import {
   PHONE_LABELS, EMAIL_LABELS, ADDRESS_LABELS, detectPlatform,
 } from '@/data/contactDefaults';
 import { toast } from 'sonner';
-import { Tables } from '@/integrations/supabase/types';
+import { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
 type PhoneRow = { id?: string; label: string; number: string; is_whatsapp: boolean; is_wechat: boolean };
 type EmailRow = { id?: string; label: string; email: string };
@@ -134,7 +134,7 @@ export function ContactFormSheet({
     if (!user || !fullName.trim()) return;
     setSaving(true);
 
-    const contactPatch: Tables<'contacts'>['Update'] = {
+    const contactPatch: TablesUpdate<'contacts'> = {
       full_name: fullName.trim(),
       nickname: nickname.trim() || null,
       group_id: groupId || null,
@@ -157,9 +157,10 @@ export function ContactFormSheet({
     if (id) {
       await supabase.from('contacts').update(contactPatch).eq('id', id);
     } else {
-      const { data } = await supabase.from('contacts').insert({
-        user_id: user.id, ...contactPatch, full_name: fullName.trim(),
-      } as Tables<'contacts'>['Insert']).select('id').maybeSingle();
+      const insertRow: TablesInsert<'contacts'> = {
+        user_id: user.id, full_name: fullName.trim(), ...contactPatch,
+      };
+      const { data } = await supabase.from('contacts').insert(insertRow).select('id').maybeSingle();
       id = (data as { id: string } | null)?.id ?? null;
     }
     if (!id) { setSaving(false); return; }
