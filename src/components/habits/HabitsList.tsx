@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import * as Icons from 'lucide-react';
 import { Plus, Pause, Play, Archive, Pencil } from 'lucide-react';
 import { Habit, computeBestStreak, computeStreak, useHabits, useHabitLogs } from '@/hooks/useHabits';
+import { useTimezone } from '@/contexts/TimezoneContext';
 import { HabitFormSheet } from './HabitFormSheet';
 import { HabitTemplates } from './HabitTemplates';
 import { StreakBadge } from './StreakBadge';
@@ -19,6 +20,7 @@ export function HabitsList() {
   const [editing, setEditing] = useState<Habit | null>(null);
   const [creating, setCreating] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const { timezone } = useTimezone();
 
   const grouped = useMemo(() => {
     const active = items.filter((h) => h.status === 'active');
@@ -29,7 +31,7 @@ export function HabitsList() {
 
   const renderCard = (h: Habit) => {
     const Icon = (Icons as any)[h.icon] || Icons.Target;
-    const streak = computeStreak(h, logs);
+    const streak = computeStreak(h, logs, timezone);
     const best = computeBestStreak(h, logs);
     return (
       <div key={h.id} className="rounded-2xl bg-card border border-border p-3 shadow-soft">
