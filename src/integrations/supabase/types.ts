@@ -609,6 +609,7 @@ export type Database = {
           location: string | null
           theme: string
           theme_color: string
+          timezone: string
           updated_at: string
         }
         Insert: {
@@ -620,6 +621,7 @@ export type Database = {
           location?: string | null
           theme?: string
           theme_color?: string
+          timezone?: string
           updated_at?: string
         }
         Update: {
@@ -631,6 +633,7 @@ export type Database = {
           location?: string | null
           theme?: string
           theme_color?: string
+          timezone?: string
           updated_at?: string
         }
         Relationships: []
