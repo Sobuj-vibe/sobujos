@@ -92,6 +92,7 @@ export default function Contacts() {
       <ContactDetailSheet
         open={!!detailId} onOpenChange={(b) => !b && setDetailId(null)}
         contactId={detailId}
+        onNavigate={(id) => setDetailId(id)}
       />
     </div>
   );
