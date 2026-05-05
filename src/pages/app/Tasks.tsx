@@ -22,6 +22,15 @@ export default function Tasks() {
     [tasks, today]
   );
 
+  const summary = useMemo(() => {
+    const dueToday = tasks.filter((x) => x.due_date && x.due_date <= today);
+    const total = dueToday.length;
+    const completed = dueToday.filter((x) => x.completed_at).length;
+    const remaining = total - completed;
+    const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
+    return { total, completed, remaining, completedPct: pct(completed), remainingPct: pct(remaining) };
+  }, [tasks, today]);
+
   const toggleTask = async (id: string, done: boolean) => {
     await supabase.from('tasks').update({ completed_at: done ? new Date().toISOString() : null }).eq('id', id);
     refreshTasks();
@@ -41,6 +50,28 @@ export default function Tasks() {
             {t('tasks.newGroup')}
           </Button>
         </div>
+
+        {todayTasks.length > 0 && (
+          <section className="space-y-2">
+            <h2 className="text-sm font-semibold text-muted-foreground px-1">Today's Task Summary</h2>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-2xl bg-card border border-border p-4 shadow-soft">
+                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="text-2xl font-bold mt-1">{summary.total}</p>
+              </div>
+              <div className="rounded-2xl bg-card border border-border p-4 shadow-soft">
+                <p className="text-xs text-muted-foreground">Completed</p>
+                <p className="text-2xl font-bold mt-1 text-emerald-500">{summary.completed}</p>
+                <p className="text-xs text-muted-foreground">{summary.completedPct}%</p>
+              </div>
+              <div className="rounded-2xl bg-card border border-border p-4 shadow-soft">
+                <p className="text-xs text-muted-foreground">Remaining</p>
+                <p className="text-2xl font-bold mt-1 text-primary">{summary.remaining}</p>
+                <p className="text-xs text-muted-foreground">{summary.remainingPct}%</p>
+              </div>
+            </div>
+          </section>
+        )}
 
         {todayTasks.length > 0 && (
           <section className="space-y-2">
