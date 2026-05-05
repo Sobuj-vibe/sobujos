@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, Phone, Mail, MapPin, Link2, Star, Lock, Save } from 'lucide-react';
+import { Plus, Trash2, Phone, Mail, MapPin, Link2, Star, Lock, Save, Camera, Loader2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -58,6 +58,8 @@ export function ContactFormSheet({
   const [financeRole, setFinanceRole] = useState<Contact['finance_role']>('none');
   const [isFavorite, setIsFavorite] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const [phones, setPhones] = useState<PhoneRow[]>([]);
   const [emails, setEmails] = useState<EmailRow[]>([]);
@@ -70,6 +72,22 @@ export function ContactFormSheet({
   const { fields: customFields } = useContactCustomFields(groupId || null);
 
   const filteredSubgroups = subgroups.filter((s) => s.group_id === groupId);
+
+  const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5MB'); return; }
+    setUploadingAvatar(true);
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = `${user.id}/contacts/${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true, contentType: file.type });
+    if (upErr) { toast.error(upErr.message); setUploadingAvatar(false); return; }
+    const { data: signed } = await supabase.storage.from('avatars').createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
+    setAvatarUrl(signed?.signedUrl ?? null);
+    setUploadingAvatar(false);
+    e.target.value = '';
+  };
+  const initialsPreview = (fullName || '?').split(/\s+/).slice(0, 2).map((s) => s[0]).join('').toUpperCase();
 
   useEffect(() => {
     if (!open) return;
@@ -102,6 +120,7 @@ export function ContactFormSheet({
           setFinanceRole(cd.finance_role);
           setIsFavorite(cd.is_favorite);
           setIsPrivate(cd.is_private);
+          setAvatarUrl(cd.avatar_url ?? null);
         }
         setPhones(((p.data as ContactPhone[]) || []).map((x) => ({
           id: x.id, label: x.label, number: x.number, is_whatsapp: x.is_whatsapp, is_wechat: x.is_wechat,
@@ -125,6 +144,7 @@ export function ContactFormSheet({
         setFinanceRole('none'); setIsFavorite(false); setIsPrivate(false);
         setPhones([{ label: 'mobile', number: '', is_whatsapp: false, is_wechat: false }]);
         setEmails([]); setAddresses([]); setSocials([]); setTagIds([]); setFieldValues({});
+        setAvatarUrl(null);
       }
     })();
   }, [open, contactId, defaultGroupId, defaultSubgroupId]);
@@ -151,6 +171,7 @@ export function ContactFormSheet({
       finance_role: financeRole,
       is_favorite: isFavorite,
       is_private: isPrivate,
+      avatar_url: avatarUrl,
     };
 
     let id = contactId;
@@ -230,6 +251,31 @@ export function ContactFormSheet({
         <form onSubmit={submit} className="space-y-5 mt-4 pb-8">
           {/* Identity */}
           <div className="space-y-3">
+            {/* Avatar */}
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" className="h-20 w-20 rounded-full object-cover border border-border" />
+                ) : (
+                  <div className="h-20 w-20 rounded-full bg-gradient-to-br from-indigo-400 to-purple-400 text-white flex items-center justify-center font-semibold text-xl">
+                    {initialsPreview}
+                  </div>
+                )}
+                <label className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer shadow-soft tap">
+                  {uploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                  <input type="file" accept="image/*" className="hidden" onChange={uploadAvatar} disabled={uploadingAvatar} />
+                </label>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                <p>Tap the camera to {avatarUrl ? 'change' : 'add'} a photo.</p>
+                {avatarUrl && (
+                  <button type="button" onClick={() => setAvatarUrl(null)} className="mt-1 inline-flex items-center gap-1 text-destructive tap">
+                    <X className="h-3 w-3" /> Remove
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="fn">Full name *</Label>
               <Input id="fn" value={fullName} onChange={(e) => setFullName(e.target.value)} required autoFocus maxLength={120} />
@@ -240,8 +286,17 @@ export function ContactFormSheet({
                 <Input id="nn" value={nickname} onChange={(e) => setNickname(e.target.value)} maxLength={60} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="gn">Gender</Label>
-                <Input id="gn" value={gender} onChange={(e) => setGender(e.target.value)} maxLength={20} placeholder="male / female / …" />
+                <Label>Gender</Label>
+                <Select value={gender || 'unset'} onValueChange={(v) => setGender(v === 'unset' ? '' : v)}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unset">—</SelectItem>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -250,8 +305,16 @@ export function ContactFormSheet({
                 <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="bg">Blood</Label>
-                <Input id="bg" value={bloodGroup} onChange={(e) => setBloodGroup(e.target.value)} maxLength={5} placeholder="A+" />
+                <Label>Blood</Label>
+                <Select value={bloodGroup || 'unset'} onValueChange={(v) => setBloodGroup(v === 'unset' ? '' : v)}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unset">—</SelectItem>
+                    {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map((b) => (
+                      <SelectItem key={b} value={b}>{b}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="loc">City</Label>

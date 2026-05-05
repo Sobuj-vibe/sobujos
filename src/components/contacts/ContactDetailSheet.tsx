@@ -217,7 +217,7 @@ export function ContactDetailSheet({
               {(contact.dob || contact.blood_group || contact.location || contact.gender) && (
                 <Section title="Personal">
                   {contact.dob && <Row label="Birthday">{new Date(contact.dob).toLocaleDateString()}</Row>}
-                  {contact.gender && <Row label="Gender">{contact.gender}</Row>}
+                  {contact.gender && <Row label="Gender">{contact.gender.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())}</Row>}
                   {contact.blood_group && <Row label="Blood">{contact.blood_group}</Row>}
                   {contact.location && <Row label="City">{contact.location}</Row>}
                 </Section>
