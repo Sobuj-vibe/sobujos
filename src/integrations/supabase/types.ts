@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      hadith_daily: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          reference: string
+          text_bn: string
+          text_en: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          id?: string
+          reference: string
+          text_bn: string
+          text_en: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          reference?: string
+          text_bn?: string
+          text_en?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      prayer_logs: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          made_up_at: string | null
+          prayer: Database["public"]["Enums"]["prayer_name"]
+          status: Database["public"]["Enums"]["prayer_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          made_up_at?: string | null
+          prayer: Database["public"]["Enums"]["prayer_name"]
+          status: Database["public"]["Enums"]["prayer_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          made_up_at?: string | null
+          prayer?: Database["public"]["Enums"]["prayer_name"]
+          status?: Database["public"]["Enums"]["prayer_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -47,6 +110,42 @@ export type Database = {
           theme?: string
           theme_color?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      quran_logs: {
+        Row: {
+          ayat_from: number
+          ayat_to: number | null
+          created_at: string
+          date: string
+          id: string
+          note: string | null
+          surah_name: string
+          surah_number: number
+          user_id: string
+        }
+        Insert: {
+          ayat_from: number
+          ayat_to?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          note?: string | null
+          surah_name: string
+          surah_number: number
+          user_id: string
+        }
+        Update: {
+          ayat_from?: number
+          ayat_to?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          note?: string | null
+          surah_name?: string
+          surah_number?: number
+          user_id?: string
         }
         Relationships: []
       }
@@ -87,6 +186,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tasbih_counters: {
+        Row: {
+          count: number
+          created_at: string
+          id: string
+          name: string
+          target: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          id?: string
+          name: string
+          target?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          id?: string
+          name?: string
+          target?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       task_groups: {
         Row: {
@@ -207,6 +336,8 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      prayer_name: "fajr" | "dhuhr" | "asr" | "maghrib" | "isha"
+      prayer_status: "on_time" | "late" | "qaza"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -335,6 +466,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      prayer_name: ["fajr", "dhuhr", "asr", "maghrib", "isha"],
+      prayer_status: ["on_time", "late", "qaza"],
     },
   },
 } as const

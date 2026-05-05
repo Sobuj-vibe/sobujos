@@ -117,6 +117,66 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "log_prayer",
+      description: "Log one of the 5 daily prayers with status. Date defaults to today.",
+      parameters: {
+        type: "object",
+        properties: {
+          prayer: { type: "string", enum: ["fajr","dhuhr","asr","maghrib","isha"] },
+          status: { type: "string", enum: ["on_time","late","qaza"] },
+          date: { type: "string", description: "YYYY-MM-DD, defaults to today" },
+        },
+        required: ["prayer","status"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "mark_kaza_made_up",
+      description: "Mark a previously-missed (qaza) prayer as made up. Provide prayer + date.",
+      parameters: {
+        type: "object",
+        properties: {
+          prayer: { type: "string", enum: ["fajr","dhuhr","asr","maghrib","isha"] },
+          date: { type: "string", description: "YYYY-MM-DD" },
+        },
+        required: ["prayer","date"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_quran_log",
+      description: "Add a Quran reading log entry.",
+      parameters: {
+        type: "object",
+        properties: {
+          surah_number: { type: "number" },
+          surah_name: { type: "string" },
+          ayat_from: { type: "number" },
+          ayat_to: { type: "number" },
+          note: { type: "string" },
+        },
+        required: ["surah_number","surah_name","ayat_from"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_prayer_summary",
+      description: "Get prayer stats for the last N days (default 30): per-prayer counts of on_time/late/qaza and outstanding kaza.",
+      parameters: {
+        type: "object",
+        properties: { days: { type: "number" } },
+      },
+    },
+  },
 ];
 
 async function runTool(name: string, args: any, supabase: any, userId: string) {
@@ -264,6 +324,64 @@ async function runTool(name: string, args: any, supabase: any, userId: string) {
       const { error } = await supabase.from("tasks").delete().eq("id", taskId).eq("user_id", userId);
       if (error) throw error;
       return { ok: true };
+    }
+    case "log_prayer": {
+      const date = args.date || new Date().toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("prayer_logs")
+        .upsert(
+          { user_id: userId, date, prayer: args.prayer, status: args.status, made_up_at: null },
+          { onConflict: "user_id,date,prayer" },
+        )
+        .select().single();
+      if (error) throw error;
+      return data;
+    }
+    case "mark_kaza_made_up": {
+      const { data, error } = await supabase
+        .from("prayer_logs")
+        .update({ made_up_at: new Date().toISOString() })
+        .eq("user_id", userId).eq("date", args.date).eq("prayer", args.prayer)
+        .select().maybeSingle();
+      if (error) throw error;
+      return data || { ok: false, message: "No matching qaza found" };
+    }
+    case "add_quran_log": {
+      const { data, error } = await supabase
+        .from("quran_logs")
+        .insert({
+          user_id: userId,
+          date: new Date().toISOString().slice(0, 10),
+          surah_number: args.surah_number,
+          surah_name: args.surah_name,
+          ayat_from: args.ayat_from,
+          ayat_to: args.ayat_to ?? null,
+          note: args.note ?? null,
+        }).select().single();
+      if (error) throw error;
+      return data;
+    }
+    case "get_prayer_summary": {
+      const days = args.days || 30;
+      const from = new Date();
+      from.setDate(from.getDate() - days);
+      const { data, error } = await supabase
+        .from("prayer_logs")
+        .select("prayer,status,made_up_at,date")
+        .eq("user_id", userId)
+        .gte("date", from.toISOString().slice(0, 10));
+      if (error) throw error;
+      const PR = ["fajr","dhuhr","asr","maghrib","isha"];
+      const summary: any = { days, per_prayer: {}, outstanding_kaza: 0 };
+      for (const p of PR) {
+        const rows = (data || []).filter((r: any) => r.prayer === p);
+        const on_time = rows.filter((r: any) => r.status === "on_time").length;
+        const late = rows.filter((r: any) => r.status === "late").length;
+        const qaza = rows.filter((r: any) => r.status === "qaza" && !r.made_up_at).length;
+        summary.per_prayer[p] = { on_time, late, qaza };
+        summary.outstanding_kaza += qaza;
+      }
+      return summary;
     }
   }
   throw new Error(`Unknown tool: ${name}`);

@@ -2,3 +2,6 @@ project_id = "cpnahbutjrtfzknqjaor"
 
 [functions.ai-assistant]
 verify_jwt = false
+
+[functions.prayer-hadith]
+verify_jwt = false
