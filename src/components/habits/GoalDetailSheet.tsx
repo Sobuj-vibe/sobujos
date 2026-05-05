@@ -29,6 +29,7 @@ export function GoalDetailSheet({
   const { items: milestones, add: addMs, toggle: toggleMs, remove: removeMs, refresh: refreshMs } = useMilestones(goalId);
   const { items: notes, add: addNote, remove: removeNote } = useGoalNotes(goalId);
   const { items: habits } = useHabits();
+  const { timezone } = useTimezone();
   const { logs } = useHabitLogs(60);
   const [editing, setEditing] = useState(false);
   const [newMs, setNewMs] = useState('');
