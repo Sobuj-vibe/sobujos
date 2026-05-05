@@ -14,6 +14,315 @@ export type Database = {
   }
   public: {
     Tables: {
+      finance_budgets: {
+        Row: {
+          amount_limit: number
+          category_id: string
+          created_at: string
+          currency: Database["public"]["Enums"]["finance_currency"]
+          id: string
+          month: string
+          user_id: string
+        }
+        Insert: {
+          amount_limit: number
+          category_id: string
+          created_at?: string
+          currency?: Database["public"]["Enums"]["finance_currency"]
+          id?: string
+          month: string
+          user_id: string
+        }
+        Update: {
+          amount_limit?: number
+          category_id?: string
+          created_at?: string
+          currency?: Database["public"]["Enums"]["finance_currency"]
+          id?: string
+          month?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_budgets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "finance_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_categories: {
+        Row: {
+          color: string
+          created_at: string
+          icon: string
+          id: string
+          kind: Database["public"]["Enums"]["finance_kind"]
+          name: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          kind: Database["public"]["Enums"]["finance_kind"]
+          name: string
+          position?: number
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["finance_kind"]
+          name?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      finance_loans: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: Database["public"]["Enums"]["finance_currency"]
+          direction: Database["public"]["Enums"]["loan_direction"]
+          expected_return_date: string | null
+          id: string
+          loan_date: string
+          note: string | null
+          paid_at: string | null
+          person_name: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: Database["public"]["Enums"]["finance_currency"]
+          direction: Database["public"]["Enums"]["loan_direction"]
+          expected_return_date?: string | null
+          id?: string
+          loan_date?: string
+          note?: string | null
+          paid_at?: string | null
+          person_name: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: Database["public"]["Enums"]["finance_currency"]
+          direction?: Database["public"]["Enums"]["loan_direction"]
+          expected_return_date?: string | null
+          id?: string
+          loan_date?: string
+          note?: string | null
+          paid_at?: string | null
+          person_name?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      finance_recurring: {
+        Row: {
+          amount: number
+          auto_post: boolean
+          category_id: string | null
+          created_at: string
+          currency: Database["public"]["Enums"]["finance_currency"]
+          frequency: Database["public"]["Enums"]["recurring_frequency"]
+          id: string
+          kind: Database["public"]["Enums"]["finance_kind"]
+          logo_url: string | null
+          next_renewal_date: string
+          note: string | null
+          payment_method: string | null
+          service_name: string
+          start_date: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          auto_post?: boolean
+          category_id?: string | null
+          created_at?: string
+          currency?: Database["public"]["Enums"]["finance_currency"]
+          frequency?: Database["public"]["Enums"]["recurring_frequency"]
+          id?: string
+          kind: Database["public"]["Enums"]["finance_kind"]
+          logo_url?: string | null
+          next_renewal_date: string
+          note?: string | null
+          payment_method?: string | null
+          service_name: string
+          start_date?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          auto_post?: boolean
+          category_id?: string | null
+          created_at?: string
+          currency?: Database["public"]["Enums"]["finance_currency"]
+          frequency?: Database["public"]["Enums"]["recurring_frequency"]
+          id?: string
+          kind?: Database["public"]["Enums"]["finance_kind"]
+          logo_url?: string | null
+          next_renewal_date?: string
+          note?: string | null
+          payment_method?: string | null
+          service_name?: string
+          start_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_recurring_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "finance_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_settings: {
+        Row: {
+          created_at: string
+          fx_bdt_per_cny: number
+          fx_usd_per_cny: number
+          id: string
+          primary_currency: Database["public"]["Enums"]["finance_currency"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fx_bdt_per_cny?: number
+          fx_usd_per_cny?: number
+          id?: string
+          primary_currency?: Database["public"]["Enums"]["finance_currency"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fx_bdt_per_cny?: number
+          fx_usd_per_cny?: number
+          id?: string
+          primary_currency?: Database["public"]["Enums"]["finance_currency"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      finance_subcategories: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          name: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_subcategories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "finance_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_transactions: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          currency: Database["public"]["Enums"]["finance_currency"]
+          id: string
+          kind: Database["public"]["Enums"]["finance_kind"]
+          note: string | null
+          occurred_at: string
+          pay_for: string | null
+          payment_method: string | null
+          receipt_url: string | null
+          recurring_id: string | null
+          subcategory_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category_id?: string | null
+          created_at?: string
+          currency?: Database["public"]["Enums"]["finance_currency"]
+          id?: string
+          kind: Database["public"]["Enums"]["finance_kind"]
+          note?: string | null
+          occurred_at?: string
+          pay_for?: string | null
+          payment_method?: string | null
+          receipt_url?: string | null
+          recurring_id?: string | null
+          subcategory_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          currency?: Database["public"]["Enums"]["finance_currency"]
+          id?: string
+          kind?: Database["public"]["Enums"]["finance_kind"]
+          note?: string | null
+          occurred_at?: string
+          pay_for?: string | null
+          payment_method?: string | null
+          receipt_url?: string | null
+          recurring_id?: string | null
+          subcategory_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "finance_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "finance_subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hadith_daily: {
         Row: {
           created_at: string
@@ -336,8 +645,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      finance_currency: "BDT" | "CNY" | "USD"
+      finance_kind: "income" | "expense"
+      loan_direction: "taken" | "given"
       prayer_name: "fajr" | "dhuhr" | "asr" | "maghrib" | "isha"
       prayer_status: "on_time" | "late" | "qaza"
+      recurring_frequency: "daily" | "weekly" | "monthly" | "yearly"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -466,8 +779,12 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      finance_currency: ["BDT", "CNY", "USD"],
+      finance_kind: ["income", "expense"],
+      loan_direction: ["taken", "given"],
       prayer_name: ["fajr", "dhuhr", "asr", "maghrib", "isha"],
       prayer_status: ["on_time", "late", "qaza"],
+      recurring_frequency: ["daily", "weekly", "monthly", "yearly"],
     },
   },
 } as const

@@ -177,6 +177,139 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "list_finance_categories",
+      description: "List all finance categories. Optional kind filter (income or expense).",
+      parameters: { type: "object", properties: { kind: { type: "string", enum: ["income","expense"] } } },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_transaction",
+      description: "Add an income or expense transaction. Resolve category by name if id unknown.",
+      parameters: {
+        type: "object",
+        properties: {
+          kind: { type: "string", enum: ["income","expense"] },
+          amount: { type: "number" },
+          currency: { type: "string", enum: ["BDT","CNY","USD"] },
+          category_name: { type: "string", description: "Category name to match (case-insensitive). Will create if missing." },
+          subcategory_name: { type: "string" },
+          pay_for: { type: "string" },
+          payment_method: { type: "string", description: "WeChat, Alipay, Cash, bKash, Nagad, Bank, or Card" },
+          occurred_at: { type: "string", description: "ISO datetime, defaults to now" },
+          note: { type: "string" },
+        },
+        required: ["kind","amount","currency"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_transactions",
+      description: "List recent transactions. Optional kind, days_back, category_name filters.",
+      parameters: {
+        type: "object",
+        properties: {
+          kind: { type: "string", enum: ["income","expense"] },
+          days_back: { type: "number" },
+          category_name: { type: "string" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_loan",
+      description: "Add a loan record (taken or given).",
+      parameters: {
+        type: "object",
+        properties: {
+          direction: { type: "string", enum: ["taken","given"] },
+          person_name: { type: "string" },
+          reason: { type: "string" },
+          amount: { type: "number" },
+          currency: { type: "string", enum: ["BDT","CNY","USD"] },
+          loan_date: { type: "string", description: "YYYY-MM-DD" },
+          expected_return_date: { type: "string", description: "YYYY-MM-DD" },
+          note: { type: "string" },
+        },
+        required: ["direction","person_name","amount","currency"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_loans",
+      description: "List loans. Optional only_open and direction filters.",
+      parameters: {
+        type: "object",
+        properties: {
+          only_open: { type: "boolean" },
+          direction: { type: "string", enum: ["taken","given"] },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "mark_loan_paid",
+      description: "Mark a loan as paid. Provide loan_id, or person_name + amount to find it.",
+      parameters: {
+        type: "object",
+        properties: {
+          loan_id: { type: "string" },
+          person_name: { type: "string" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_recurring",
+      description: "Add a recurring income or expense (e.g. subscription).",
+      parameters: {
+        type: "object",
+        properties: {
+          kind: { type: "string", enum: ["income","expense"] },
+          service_name: { type: "string" },
+          amount: { type: "number" },
+          currency: { type: "string", enum: ["BDT","CNY","USD"] },
+          frequency: { type: "string", enum: ["daily","weekly","monthly","yearly"] },
+          payment_method: { type: "string" },
+          start_date: { type: "string", description: "YYYY-MM-DD" },
+          next_renewal_date: { type: "string", description: "YYYY-MM-DD" },
+          auto_post: { type: "boolean" },
+          note: { type: "string" },
+        },
+        required: ["kind","service_name","amount","currency","frequency"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_recurring",
+      description: "List recurring items.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_finance_summary",
+      description: "Get total income, expense, net, and top expense categories for the last N days (default 30).",
+      parameters: { type: "object", properties: { days: { type: "number" } } },
+    },
+  },
 ];
 
 async function runTool(name: string, args: any, supabase: any, userId: string) {
@@ -382,6 +515,159 @@ async function runTool(name: string, args: any, supabase: any, userId: string) {
         summary.outstanding_kaza += qaza;
       }
       return summary;
+    }
+    case "list_finance_categories": {
+      let q = supabase.from("finance_categories").select("id,kind,name,icon").eq("user_id", userId);
+      if (args.kind) q = q.eq("kind", args.kind);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data;
+    }
+    case "add_transaction": {
+      let categoryId: string | null = null;
+      if (args.category_name) {
+        const { data: cs } = await supabase.from("finance_categories")
+          .select("id").eq("user_id", userId).eq("kind", args.kind)
+          .ilike("name", args.category_name).limit(1);
+        if (cs && cs.length > 0) categoryId = cs[0].id;
+        else {
+          const { data: nc } = await supabase.from("finance_categories")
+            .insert({ user_id: userId, kind: args.kind, name: args.category_name, icon: "Tag", color: "indigo" })
+            .select("id").single();
+          categoryId = nc?.id || null;
+        }
+      }
+      let subId: string | null = null;
+      if (args.subcategory_name && categoryId) {
+        const { data: ss } = await supabase.from("finance_subcategories")
+          .select("id").eq("user_id", userId).eq("category_id", categoryId)
+          .ilike("name", args.subcategory_name).limit(1);
+        if (ss && ss.length > 0) subId = ss[0].id;
+      }
+      const { data, error } = await supabase.from("finance_transactions").insert({
+        user_id: userId,
+        kind: args.kind,
+        category_id: categoryId,
+        subcategory_id: subId,
+        amount: args.amount,
+        currency: args.currency,
+        pay_for: args.pay_for ?? null,
+        payment_method: args.payment_method ?? null,
+        occurred_at: args.occurred_at ?? new Date().toISOString(),
+        note: args.note ?? null,
+      }).select().single();
+      if (error) throw error;
+      return data;
+    }
+    case "list_transactions": {
+      let q = supabase.from("finance_transactions")
+        .select("id,kind,amount,currency,pay_for,payment_method,occurred_at,note,category_id")
+        .eq("user_id", userId).order("occurred_at", { ascending: false }).limit(100);
+      if (args.kind) q = q.eq("kind", args.kind);
+      if (args.days_back) {
+        const from = new Date(); from.setDate(from.getDate() - args.days_back);
+        q = q.gte("occurred_at", from.toISOString());
+      }
+      const { data, error } = await q;
+      if (error) throw error;
+      let rows = data || [];
+      if (args.category_name) {
+        const { data: cs } = await supabase.from("finance_categories")
+          .select("id").eq("user_id", userId).ilike("name", `%${args.category_name}%`);
+        const ids = new Set((cs || []).map((c: any) => c.id));
+        rows = rows.filter((r: any) => r.category_id && ids.has(r.category_id));
+      }
+      return rows;
+    }
+    case "add_loan": {
+      const { data, error } = await supabase.from("finance_loans").insert({
+        user_id: userId,
+        direction: args.direction,
+        person_name: args.person_name,
+        reason: args.reason ?? null,
+        amount: args.amount,
+        currency: args.currency,
+        loan_date: args.loan_date ?? new Date().toISOString().slice(0, 10),
+        expected_return_date: args.expected_return_date ?? null,
+        note: args.note ?? null,
+      }).select().single();
+      if (error) throw error;
+      return data;
+    }
+    case "list_loans": {
+      let q = supabase.from("finance_loans").select("*").eq("user_id", userId).order("loan_date", { ascending: false });
+      if (args.only_open) q = q.is("paid_at", null);
+      if (args.direction) q = q.eq("direction", args.direction);
+      const { data, error } = await q.limit(100);
+      if (error) throw error;
+      return data;
+    }
+    case "mark_loan_paid": {
+      let loanId = args.loan_id;
+      if (!loanId && args.person_name) {
+        const { data: ls } = await supabase.from("finance_loans")
+          .select("id").eq("user_id", userId).ilike("person_name", `%${args.person_name}%`)
+          .is("paid_at", null).limit(1);
+        if (ls && ls.length > 0) loanId = ls[0].id;
+      }
+      if (!loanId) throw new Error("Loan not found");
+      const { data, error } = await supabase.from("finance_loans")
+        .update({ paid_at: new Date().toISOString() }).eq("id", loanId).eq("user_id", userId)
+        .select().single();
+      if (error) throw error;
+      return data;
+    }
+    case "add_recurring": {
+      const { data, error } = await supabase.from("finance_recurring").insert({
+        user_id: userId,
+        kind: args.kind,
+        service_name: args.service_name,
+        amount: args.amount,
+        currency: args.currency,
+        frequency: args.frequency,
+        payment_method: args.payment_method ?? null,
+        start_date: args.start_date ?? new Date().toISOString().slice(0, 10),
+        next_renewal_date: args.next_renewal_date ?? new Date().toISOString().slice(0, 10),
+        auto_post: args.auto_post ?? false,
+        note: args.note ?? null,
+      }).select().single();
+      if (error) throw error;
+      return data;
+    }
+    case "list_recurring": {
+      const { data, error } = await supabase.from("finance_recurring")
+        .select("*").eq("user_id", userId).order("next_renewal_date").limit(100);
+      if (error) throw error;
+      return data;
+    }
+    case "get_finance_summary": {
+      const days = args.days || 30;
+      const from = new Date(); from.setDate(from.getDate() - days);
+      const { data, error } = await supabase.from("finance_transactions")
+        .select("kind,amount,currency,category_id")
+        .eq("user_id", userId).gte("occurred_at", from.toISOString());
+      if (error) throw error;
+      const rows = data || [];
+      const byCurrency: any = {};
+      for (const r of rows) {
+        const c = r.currency;
+        byCurrency[c] = byCurrency[c] || { income: 0, expense: 0 };
+        byCurrency[c][r.kind] += Number(r.amount);
+      }
+      const expByCat = new Map<string, number>();
+      for (const r of rows.filter((x: any) => x.kind === "expense")) {
+        const id = r.category_id || "uncat";
+        expByCat.set(id, (expByCat.get(id) || 0) + Number(r.amount));
+      }
+      const catIds = [...expByCat.keys()].filter((x) => x !== "uncat");
+      let names: Record<string, string> = {};
+      if (catIds.length > 0) {
+        const { data: cs } = await supabase.from("finance_categories").select("id,name").in("id", catIds);
+        names = Object.fromEntries((cs || []).map((c: any) => [c.id, c.name]));
+      }
+      const top = [...expByCat.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
+        .map(([id, amt]) => ({ category: names[id] || "Uncategorized", amount: amt }));
+      return { days, by_currency: byCurrency, top_expense_categories: top };
     }
   }
   throw new Error(`Unknown tool: ${name}`);
