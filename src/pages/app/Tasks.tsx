@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
+import { TodayTaskItem, useSubtasksForTasks } from '@/components/tasks/TodayTaskItem';
 
 export default function Tasks() {
   const { t } = useTranslation();
@@ -22,19 +23,30 @@ export default function Tasks() {
     [tasks, today]
   );
 
+  const dueTodayTasks = useMemo(
+    () => tasks.filter((x) => x.due_date && x.due_date <= today),
+    [tasks, today]
+  );
+  const dueTodayIds = useMemo(() => dueTodayTasks.map((t) => t.id), [dueTodayTasks]);
+  const { subtasksByTask } = useSubtasksForTasks(dueTodayIds);
+
   const summary = useMemo(() => {
-    const dueToday = tasks.filter((x) => x.due_date && x.due_date <= today);
-    const total = dueToday.length;
-    const completed = dueToday.filter((x) => x.completed_at).length;
+    let total = 0;
+    let completed = 0;
+    dueTodayTasks.forEach((t) => {
+      const subs = subtasksByTask[t.id] || [];
+      if (subs.length > 0) {
+        total += subs.length;
+        completed += subs.filter((s) => !!s.completed_at).length;
+      } else {
+        total += 1;
+        if (t.completed_at) completed += 1;
+      }
+    });
     const remaining = total - completed;
     const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
     return { total, completed, remaining, completedPct: pct(completed), remainingPct: pct(remaining) };
-  }, [tasks, today]);
-
-  const toggleTask = async (id: string, done: boolean) => {
-    await supabase.from('tasks').update({ completed_at: done ? new Date().toISOString() : null }).eq('id', id);
-    refreshTasks();
-  };
+  }, [dueTodayTasks, subtasksByTask]);
 
   return (
     <div>
@@ -78,12 +90,12 @@ export default function Tasks() {
             <h2 className="text-sm font-semibold text-muted-foreground px-1">{t('tasks.todayTitle')}</h2>
             <div className="rounded-2xl bg-card border border-border shadow-soft divide-y divide-border">
               {todayTasks.slice(0, 5).map((task) => (
-                <div key={task.id} className="flex items-center gap-3 p-3">
-                  <Checkbox checked={false} onCheckedChange={(v) => toggleTask(task.id, !!v)} />
-                  <Link to={`/app/tasks/${task.group_id}`} className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{task.title}</p>
-                  </Link>
-                </div>
+                <TodayTaskItem
+                  key={task.id}
+                  task={task}
+                  subtasks={subtasksByTask[task.id] || []}
+                  onChanged={refreshTasks}
+                />
               ))}
             </div>
           </section>
