@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as Icons from 'lucide-react';
-import { computeStreak, isScheduledOn, isoDate, meetsTarget, useHabits, useHabitLogs } from '@/hooks/useHabits';
+import { computeStreak, isScheduledOn, meetsTarget, useHabits, useHabitLogs } from '@/hooks/useHabits';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { isoDateInTz } from '@/lib/datetime';
 import { useGoals, useAllMilestones } from '@/hooks/useGoals';
 import { YearlyHeatmap } from './YearlyHeatmap';
 import { StreakBadge } from './StreakBadge';
@@ -12,15 +14,16 @@ export function StatsView() {
   const { logs } = useHabitLogs(365);
   const { items: goals } = useGoals();
   const { items: ms } = useAllMilestones();
+  const { timezone } = useTimezone();
 
   const active = habits.filter((h) => h.status === 'active');
   const [selectedId, setSelectedId] = useState<string>(active[0]?.id || '');
   const selected = active.find((h) => h.id === selectedId) || active[0];
 
   const leaderboard = useMemo(() =>
-    active.map((h) => ({ h, streak: computeStreak(h, logs) }))
+    active.map((h) => ({ h, streak: computeStreak(h, logs, timezone) }))
       .sort((a, b) => b.streak - a.streak),
-    [active, logs],
+    [active, logs, timezone],
   );
 
   // Last 12 weeks consistency
@@ -32,7 +35,7 @@ export function StatsView() {
       for (let d = 6; d >= 0; d--) {
         const date = new Date(today);
         date.setDate(today.getDate() - (w * 7 + d));
-        const key = isoDate(date);
+        const key = isoDateInTz(date, timezone);
         for (const h of active) {
           if (!isScheduledOn(h, date)) continue;
           scheduled++;
