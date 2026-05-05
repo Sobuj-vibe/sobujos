@@ -1,13 +1,14 @@
 import { Habit, HabitLog, isScheduledOn, meetsTarget } from '@/hooks/useHabits';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
-
-function isoDate(d: Date) { return d.toISOString().slice(0, 10); }
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { isoDateInTz } from '@/lib/datetime';
 
 export function YearlyHeatmap({
   habit, logs,
 }: { habit: Habit; logs: HabitLog[] }) {
   const { t } = useTranslation();
+  const { timezone } = useTimezone();
   const today = new Date();
   const days: { date: string; intensity: number; scheduled: boolean }[] = [];
   const byDate = new Map<string, HabitLog>();
@@ -17,7 +18,7 @@ export function YearlyHeatmap({
   for (let i = 364; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-    const key = isoDate(d);
+    const key = isoDateInTz(d, timezone);
     const log = byDate.get(key);
     const sched = isScheduledOn(habit, d);
     let intensity = 0;
