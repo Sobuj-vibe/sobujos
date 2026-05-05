@@ -7,6 +7,7 @@ export const en = {
     tasks: 'Tasks',
     prayer: 'Prayer',
     finance: 'Finance',
+    habits: 'Habits',
     profile: 'Profile',
   },
   auth: {
