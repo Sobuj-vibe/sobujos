@@ -14,6 +14,8 @@ import { CurrencyAmount } from './CurrencyAmount';
 import { CheckCircle2, RotateCcw, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { todayInTz } from '@/lib/datetime';
 
 function LoanCard({ loan, onPaid, onUnpaid, onDelete }: {
   loan: Loan;
@@ -74,12 +76,13 @@ function LoanCard({ loan, onPaid, onUnpaid, onDelete }: {
 function LoanForm({ open, onOpenChange, defaultDirection }: { open: boolean; onOpenChange: (b: boolean) => void; defaultDirection: 'taken' | 'given' }) {
   const { t } = useTranslation();
   const { add } = useLoans();
+  const { timezone } = useTimezone();
   const [direction, setDirection] = useState<'taken' | 'given'>(defaultDirection);
   const [person, setPerson] = useState('');
   const [reason, setReason] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<Currency>('BDT');
-  const [loanDate, setLoanDate] = useState(new Date().toISOString().slice(0, 10));
+  const [loanDate, setLoanDate] = useState(() => todayInTz(timezone));
   const [returnDate, setReturnDate] = useState('');
   const [note, setNote] = useState('');
 
