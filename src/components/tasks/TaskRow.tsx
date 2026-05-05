@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { useTranslation } from 'react-i18next';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { format, parseISO } from 'date-fns';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { todayInTz } from '@/lib/datetime';
 
 export function TaskRow({ task, onEdit, onChange }: { task: Task; onEdit: (t: Task) => void; onChange: () => void }) {
   const { t } = useTranslation();
@@ -16,9 +18,10 @@ export function TaskRow({ task, onEdit, onChange }: { task: Task; onEdit: (t: Ta
   const [expanded, setExpanded] = useState(false);
   const [newSub, setNewSub] = useState('');
   const { subtasks, refresh: refreshSubs } = useSubtasks(expanded ? task.id : null);
+  const { timezone } = useTimezone();
 
   const done = !!task.completed_at;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInTz(timezone);
   const isOverdue = !done && task.due_date && task.due_date < today;
 
   const toggleTask = async (val: boolean) => {

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PRAYERS, isoDate, usePrayerLogs } from '@/hooks/usePrayer';
+import { PRAYERS, usePrayerLogs } from '@/hooks/usePrayer';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { isoDateInTz } from '@/lib/datetime';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -8,6 +10,7 @@ export function KazaSection() {
   const { t } = useTranslation();
   const { logs, markMadeUp } = usePrayerLogs(90);
   const [openDay, setOpenDay] = useState<string | null>(null);
+  const { timezone } = useTimezone();
 
   // 90-day grid (most recent first, displayed oldest -> newest)
   const days = useMemo(() => {
@@ -16,10 +19,10 @@ export function KazaSection() {
     for (let i = 89; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      arr.push(isoDate(d));
+      arr.push(isoDateInTz(d, timezone));
     }
     return arr;
-  }, []);
+  }, [timezone]);
 
   const kazaByDate = useMemo(() => {
     const m: Record<string, typeof logs> = {};

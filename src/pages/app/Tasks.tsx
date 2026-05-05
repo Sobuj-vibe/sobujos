@@ -8,6 +8,8 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { TodayTaskItem, useSubtasksForTasks } from '@/components/tasks/TodayTaskItem';
 import { cn } from '@/lib/utils';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { todayInTz, addDaysIso } from '@/lib/datetime';
 import {
   Select,
   SelectContent,
@@ -25,16 +27,16 @@ export default function Tasks() {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<ViewMode>('today');
   const [groupFilter, setGroupFilter] = useState<string>('all');
+  const { timezone } = useTimezone();
 
   const { today, tomorrow, weekEnd } = useMemo(() => {
-    const d = new Date();
-    const iso = (x: Date) => x.toISOString().slice(0, 10);
-    const tmr = new Date(d);
-    tmr.setDate(d.getDate() + 1);
-    const wk = new Date(d);
-    wk.setDate(d.getDate() + 6);
-    return { today: iso(d), tomorrow: iso(tmr), weekEnd: iso(wk) };
-  }, []);
+    const today = todayInTz(timezone);
+    return {
+      today,
+      tomorrow: addDaysIso(today, 1),
+      weekEnd: addDaysIso(today, 6),
+    };
+  }, [timezone]);
 
   // Range of dates included in the current view (inclusive)
   const inRange = (date: string) => {

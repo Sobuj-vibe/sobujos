@@ -12,6 +12,16 @@ import { Sun, Moon, Cloud, LogOut, Camera, Download, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { COMMON_TIMEZONES, detectBrowserTimezone, todayInTz } from '@/lib/datetime';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Globe } from 'lucide-react';
 
 const APP_VERSION = '0.1.0';
 
@@ -29,6 +39,7 @@ export default function Profile() {
   const { t, i18n } = useTranslation();
   const { user, signOut } = useAuth();
   const { theme, setTheme, color, setColor } = useTheme();
+  const { timezone, setTimezone } = useTimezone();
   const nav = useNavigate();
   const [displayName, setDisplayName] = useState('');
   const [location, setLocation] = useState('');
@@ -82,6 +93,22 @@ export default function Profile() {
   };
 
   const initials = (displayName || user?.email || '?').slice(0, 2).toUpperCase();
+
+  const browserTz = detectBrowserTimezone();
+  // Build options: current + browser tz + curated list (deduped).
+  const tzOptions = (() => {
+    const seen = new Set<string>();
+    const list: { value: string; label: string }[] = [];
+    const push = (v: string, l: string) => {
+      if (!v || seen.has(v)) return;
+      seen.add(v);
+      list.push({ value: v, label: l });
+    };
+    push(browserTz, `${browserTz} (${t('profile.deviceTimezone')})`);
+    if (timezone && timezone !== browserTz) push(timezone, timezone);
+    for (const o of COMMON_TIMEZONES) push(o.value, o.label);
+    return list;
+  })();
 
   return (
     <div>
@@ -153,6 +180,37 @@ export default function Profile() {
               <button onClick={() => changeLang('en')} className={cn('h-11 rounded-xl border tap font-medium', i18n.language === 'en' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground')}>English</button>
             </div>
           </div>
+        </section>
+
+        {/* Timezone */}
+        <section className="rounded-2xl bg-card border border-border p-5 shadow-soft space-y-3">
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-muted-foreground">{t('profile.timezone')}</h2>
+          </div>
+          <p className="text-xs text-muted-foreground">{t('profile.timezoneHelp')}</p>
+          <Select value={timezone} onValueChange={(v) => { setTimezone(v); toast.success(t('profile.saved')); }}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-72">
+              {tzOptions.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2">
+            <span className="text-xs text-muted-foreground">{t('profile.todayHere')}</span>
+            <span className="text-xs font-mono tabular-nums">{todayInTz(timezone)}</span>
+          </div>
+          {timezone !== browserTz && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => { setTimezone(browserTz); toast.success(t('profile.saved')); }}
+            >
+              {t('profile.useDeviceTimezone')} · {browserTz}
+            </Button>
+          )}
         </section>
 
         {/* Install */}

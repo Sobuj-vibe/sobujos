@@ -7,7 +7,9 @@ import { PrayerReport } from '@/components/prayer/PrayerReport';
 import { KazaSection } from '@/components/prayer/KazaSection';
 import { QuranSection } from '@/components/prayer/QuranSection';
 import { TasbihCard } from '@/components/prayer/TasbihCard';
-import { isoDate, PRAYERS, usePrayerLogs } from '@/hooks/usePrayer';
+import { PRAYERS, usePrayerLogs } from '@/hooks/usePrayer';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { isoDateInTz } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
 import { Flame } from 'lucide-react';
 
@@ -16,13 +18,14 @@ type Tab = 'today' | 'kaza' | 'quran' | 'reports';
 function StreakCard() {
   const { t } = useTranslation();
   const { logs } = usePrayerLogs(90);
+  const { timezone } = useTimezone();
   const streak = useMemo(() => {
     let s = 0;
     const today = new Date();
     for (let i = 0; i < 90; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      const date = isoDate(d);
+      const date = isoDateInTz(d, timezone);
       const dayLogs = logs.filter((l) => l.date === date);
       const completed = PRAYERS.every((p) =>
         dayLogs.some((l) => l.prayer === p && (l.status === 'on_time' || l.status === 'late')),
@@ -32,7 +35,7 @@ function StreakCard() {
       else break;
     }
     return s;
-  }, [logs]);
+  }, [logs, timezone]);
 
   return (
     <div className="rounded-2xl gradient-primary p-4 text-primary-foreground flex items-center gap-3 shadow-soft">

@@ -106,6 +106,11 @@ export const en = {
     version: 'Version',
     saved: 'Saved',
     saveFailed: 'Could not save changes',
+    timezone: 'Timezone',
+    timezoneHelp: "Used so 'today' matches your local calendar day across the app.",
+    deviceTimezone: 'device',
+    todayHere: 'Today here',
+    useDeviceTimezone: 'Use device timezone',
   },
   ai: {
     title: 'AI Assistant',

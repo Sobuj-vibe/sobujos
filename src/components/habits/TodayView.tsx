@@ -3,8 +3,10 @@ import { useTranslation } from 'react-i18next';
 import * as Icons from 'lucide-react';
 import { Plus, Sparkles } from 'lucide-react';
 import {
-  Habit, computeStreak, isScheduledOn, isoDate, useHabits, useHabitLogs, meetsTarget,
+  Habit, computeStreak, isScheduledOn, useHabits, useHabitLogs, meetsTarget,
 } from '@/hooks/useHabits';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { isoDateInTz } from '@/lib/datetime';
 import { useGoals, useAllMilestones } from '@/hooks/useGoals';
 import { TIME_OF_DAY } from '@/data/habitTemplates';
 import { HabitCheckButton } from './HabitCheckButton';
@@ -21,9 +23,10 @@ export function TodayView() {
   const { items: allMs } = useAllMilestones();
   const [editing, setEditing] = useState<Habit | null>(null);
   const [creating, setCreating] = useState(false);
+  const { timezone } = useTimezone();
 
   const today = new Date();
-  const todayKey = isoDate(today);
+  const todayKey = isoDateInTz(today, timezone);
 
   const todayHabits = useMemo(
     () => habits.filter((h) => h.status === 'active' && isScheduledOn(h, today)),
@@ -130,7 +133,7 @@ export function TodayView() {
               {list.map((h) => {
                 const log = logsByHabitDate.get(`${h.id}:${todayKey}`);
                 const HIcon = (Icons as any)[h.icon] || Icons.Target;
-                const streak = computeStreak(h, logs);
+                const streak = computeStreak(h, logs, timezone);
                 return (
                   <div key={h.id} className="flex items-center gap-2 p-2 rounded-xl hover:bg-muted/50">
                     <button

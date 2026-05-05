@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { TimezoneProvider } from "@/contexts/TimezoneContext";
 import { ProtectedRoute } from "@/components/app/ProtectedRoute";
 import { AppShell } from "@/components/app/AppShell";
 import Login from "./pages/auth/Login";
@@ -29,6 +30,7 @@ const App = () => (
     <BrowserRouter>
       <AuthProvider>
         <ThemeProvider>
+          <TimezoneProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner position="top-center" />
@@ -53,6 +55,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </TooltipProvider>
+          </TimezoneProvider>
         </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>

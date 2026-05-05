@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { Check, Clock, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PRAYERS, PrayerName, PrayerStatus, isoDate, usePrayerLogs } from '@/hooks/usePrayer';
+import { PRAYERS, PrayerName, PrayerStatus, usePrayerLogs } from '@/hooks/usePrayer';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { todayInTz } from '@/lib/datetime';
 
 const STATUSES: { id: PrayerStatus; icon: any; cls: string }[] = [
   { id: 'on_time', icon: Check, cls: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30' },
@@ -12,7 +14,8 @@ const STATUSES: { id: PrayerStatus; icon: any; cls: string }[] = [
 export function DailyPrayerTracker() {
   const { t } = useTranslation();
   const { logs, upsertPrayer } = usePrayerLogs(7);
-  const today = isoDate(new Date());
+  const { timezone } = useTimezone();
+  const today = todayInTz(timezone);
   const todayLogs = logs.filter((l) => l.date === today);
   const byPrayer: Record<string, PrayerStatus | undefined> = {};
   todayLogs.forEach((l) => (byPrayer[l.prayer] = l.status));

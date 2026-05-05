@@ -1,9 +1,12 @@
-import { Habit, HabitLog, isScheduledOn, isoDate, meetsTarget } from '@/hooks/useHabits';
+import { Habit, HabitLog, isScheduledOn, meetsTarget } from '@/hooks/useHabits';
 import { cn } from '@/lib/utils';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { isoDateInTz } from '@/lib/datetime';
 
 export function WeekDots({
   habit, logs,
 }: { habit: Habit; logs: HabitLog[] }) {
+  const { timezone } = useTimezone();
   const days: { date: string; scheduled: boolean; log: HabitLog | undefined }[] = [];
   const byDate = new Map<string, HabitLog>();
   logs.filter((l) => l.habit_id === habit.id).forEach((l) => byDate.set(l.date, l));
@@ -11,7 +14,7 @@ export function WeekDots({
   for (let i = 6; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-    const key = isoDate(d);
+    const key = isoDateInTz(d, timezone);
     days.push({ date: key, scheduled: isScheduledOn(habit, d), log: byDate.get(key) });
   }
   return (

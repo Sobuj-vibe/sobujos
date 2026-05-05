@@ -15,6 +15,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Sparkles, Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { localDateTimeInputInTz } from '@/lib/datetime';
 
 type Props = {
   open: boolean;
@@ -26,6 +28,7 @@ type Props = {
 export function TransactionForm({ open, onOpenChange, kind, defaults }: Props) {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { timezone } = useTimezone();
   const { categories, subcategories, addCategory, addSubcategory } = useFinanceCategories();
   const { add } = useTransactions({ kind });
 
@@ -38,7 +41,7 @@ export function TransactionForm({ open, onOpenChange, kind, defaults }: Props) {
   const [payFor, setPayFor] = useState('');
   const [method, setMethod] = useState<string>('Cash');
   const [receipt, setReceipt] = useState<string | null>(null);
-  const [when, setWhen] = useState<string>(() => new Date().toISOString().slice(0, 16));
+  const [when, setWhen] = useState<string>(() => localDateTimeInputInTz(new Date(), timezone));
   const [note, setNote] = useState('');
   const [ocrBusy, setOcrBusy] = useState(false);
   const [newCat, setNewCat] = useState('');
@@ -53,7 +56,7 @@ export function TransactionForm({ open, onOpenChange, kind, defaults }: Props) {
       setPayFor(defaults?.pay_for || '');
       setMethod('Cash');
       setReceipt(null);
-      setWhen(defaults?.occurred_at || new Date().toISOString().slice(0, 16));
+      setWhen(defaults?.occurred_at || localDateTimeInputInTz(new Date(), timezone));
       setNote('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

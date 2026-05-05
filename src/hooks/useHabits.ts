@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { isoDateInTz } from '@/lib/datetime';
 
 export type HabitType = 'boolean' | 'counter' | 'duration';
 export type HabitScheduleKind = 'daily' | 'weekdays' | 'weekly_count';
@@ -43,6 +45,11 @@ function emit() {
   window.dispatchEvent(new Event('ai-data-changed'));
 }
 
+/**
+ * @deprecated Prefer `isoDateInTz(date, tz)` from `@/lib/datetime` so the value
+ * reflects the user's local calendar day. This helper still exists for legacy
+ * callers and assumes UTC.
+ */
 export function isoDate(d: Date = new Date()): string {
   return d.toISOString().slice(0, 10);
 }
@@ -70,7 +77,7 @@ export function meetsTarget(habit: Habit, log: HabitLog | null | undefined): boo
 }
 
 /** Compute current streak (consecutive scheduled days completed up to today). */
-export function computeStreak(habit: Habit, logs: HabitLog[]): number {
+export function computeStreak(habit: Habit, logs: HabitLog[], tz: string = 'UTC'): number {
   const byDate = new Map<string, HabitLog>();
   logs.filter((l) => l.habit_id === habit.id).forEach((l) => byDate.set(l.date, l));
   let streak = 0;
@@ -80,7 +87,7 @@ export function computeStreak(habit: Habit, logs: HabitLog[]): number {
     const date = new Date(d);
     date.setDate(d.getDate() - i);
     if (!isScheduledOn(habit, date)) continue;
-    const key = isoDate(date);
+    const key = isoDateInTz(date, tz);
     const log = byDate.get(key);
     if (meetsTarget(habit, log)) {
       streak++;
@@ -172,6 +179,7 @@ export function useHabits() {
 
 export function useHabitLogs(daysBack = 365) {
   const { user } = useAuth();
+  const { timezone } = useTimezone();
   const [logs, setLogs] = useState<HabitLog[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -183,11 +191,11 @@ export function useHabitLogs(daysBack = 365) {
       .from('habit_logs')
       .select('*')
       .eq('user_id', user.id)
-      .gte('date', isoDate(from))
+      .gte('date', isoDateInTz(from, timezone))
       .order('date', { ascending: false });
     setLogs(((data as any[]) || []).map((d) => ({ ...d, value: Number(d.value) })));
     setLoading(false);
-  }, [user, daysBack]);
+  }, [user, daysBack, timezone]);
 
   useEffect(() => { refresh(); }, [refresh]);
   useEffect(() => {
@@ -202,7 +210,7 @@ export function useHabitLogs(daysBack = 365) {
     opts: { value?: number; status?: HabitLogStatus; date?: string; note?: string } = {},
   ) => {
     if (!user) return;
-    const date = opts.date || isoDate();
+    const date = opts.date || isoDateInTz(new Date(), timezone);
     const value = opts.value ?? (habit.type === 'boolean' ? 1 : 0);
     const status: HabitLogStatus =
       opts.status ??
@@ -231,7 +239,7 @@ export function useHabitLogs(daysBack = 365) {
 
   const incrementToday = async (habit: Habit, delta = 1) => {
     if (!user) return;
-    const today = isoDate();
+    const today = isoDateInTz(new Date(), timezone);
     const current = logs.find((l) => l.habit_id === habit.id && l.date === today);
     const value = Math.max(0, (current?.value || 0) + delta);
     await setLog(habit, { value });
@@ -243,7 +251,7 @@ export function useHabitLogs(daysBack = 365) {
 
   const clearToday = async (habit: Habit) => {
     if (!user) return;
-    const today = isoDate();
+    const today = isoDateInTz(new Date(), timezone);
     await supabase.from('habit_logs')
       .delete()
       .eq('user_id', user.id).eq('habit_id', habit.id).eq('date', today);

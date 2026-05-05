@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Check, Plus, Trash2, Pencil, Sparkles, Loader2 } from 'lucide-react';
 import { Goal, useGoals, useGoalNotes, useMilestones } from '@/hooks/useGoals';
 import { useHabits, useHabitLogs, computeStreak } from '@/hooks/useHabits';
+import { useTimezone } from '@/contexts/TimezoneContext';
 import { GoalFormSheet } from './GoalFormSheet';
 import { StreakBadge } from './StreakBadge';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,6 +29,7 @@ export function GoalDetailSheet({
   const { items: milestones, add: addMs, toggle: toggleMs, remove: removeMs, refresh: refreshMs } = useMilestones(goalId);
   const { items: notes, add: addNote, remove: removeNote } = useGoalNotes(goalId);
   const { items: habits } = useHabits();
+  const { timezone } = useTimezone();
   const { logs } = useHabitLogs(60);
   const [editing, setEditing] = useState(false);
   const [newMs, setNewMs] = useState('');
@@ -208,7 +210,7 @@ export function GoalDetailSheet({
                       <div key={h.id} className="flex items-center gap-2 text-xs">
                         <Icon className="h-3.5 w-3.5 text-primary" />
                         <span className="flex-1 truncate">{h.name}</span>
-                        <StreakBadge streak={computeStreak(h, logs)} />
+                        <StreakBadge streak={computeStreak(h, logs, timezone)} />
                       </div>
                     );
                   })}

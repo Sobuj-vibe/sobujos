@@ -15,6 +15,8 @@ import { CurrencyAmount } from './CurrencyAmount';
 import { Plus, Trash2, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { todayInTz } from '@/lib/datetime';
 
 function daysUntil(date: string) {
   const d = new Date(date);
@@ -57,14 +59,15 @@ function RecurringForm({ open, onOpenChange }: { open: boolean; onOpenChange: (b
   const { t } = useTranslation();
   const { add } = useRecurring();
   const { categories } = useFinanceCategories();
+  const { timezone } = useTimezone();
   const [kind, setKind] = useState<FinanceKind>('expense');
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<Currency>('BDT');
   const [method, setMethod] = useState<string>('Cash');
   const [categoryId, setCategoryId] = useState<string>('');
-  const [start, setStart] = useState(new Date().toISOString().slice(0, 10));
-  const [next, setNext] = useState(() => nextRenewal(new Date().toISOString().slice(0, 10), 'monthly'));
+  const [start, setStart] = useState(() => todayInTz(timezone));
+  const [next, setNext] = useState(() => nextRenewal(todayInTz(timezone), 'monthly'));
   const [freq, setFreq] = useState<Frequency>('monthly');
   const [autoPost, setAutoPost] = useState(false);
   const [note, setNote] = useState('');
@@ -157,6 +160,7 @@ export function RecurringSection() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const { items, remove } = useRecurring();
+  const { timezone } = useTimezone();
 
   const grouped = useMemo(() => ({
     expense: items.filter((r) => r.kind === 'expense'),
@@ -170,7 +174,7 @@ export function RecurringSection() {
       return d >= 0 && d <= 5;
     });
     if (due.length > 0) {
-      const key = `finance-reminded-${new Date().toISOString().slice(0,10)}`;
+      const key = `finance-reminded-${todayInTz(timezone)}`;
       if (!sessionStorage.getItem(key)) {
         sessionStorage.setItem(key, '1');
         toast.message(`${due.length} subscription${due.length>1?'s':''} renewing soon`, {
