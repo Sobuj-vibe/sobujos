@@ -155,6 +155,7 @@ export function ContactFormSheet({
       finance_role: financeRole,
       is_favorite: isFavorite,
       is_private: isPrivate,
+      avatar_url: avatarUrl,
     };
 
     let id = contactId;
