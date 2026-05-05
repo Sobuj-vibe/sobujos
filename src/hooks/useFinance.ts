@@ -461,3 +461,68 @@ export function useMonthSummary(daysBack = 30) {
     return { totalIn, totalOut, net: totalIn - totalOut, currency: settings.primary_currency, count: tx.length };
   }, [tx, settings]);
 }
+
+export type Budget = {
+  id: string;
+  category_id: string;
+  month: string; // YYYY-MM-01
+  amount_limit: number;
+  currency: Currency;
+};
+
+/** First day of the current month as YYYY-MM-DD. */
+export function currentMonthStart(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
+export function useBudgets(month: string = currentMonthStart()) {
+  const { user } = useAuth();
+  const [items, setItems] = useState<Budget[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('finance_budgets')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('month', month);
+    setItems(((data as any[]) || []).map((d) => ({ ...d, amount_limit: Number(d.amount_limit) })));
+    setLoading(false);
+  }, [user, month]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    const h = () => refresh();
+    window.addEventListener('ai-data-changed', h);
+    return () => window.removeEventListener('ai-data-changed', h);
+  }, [refresh]);
+
+  const upsert = async (category_id: string, amount_limit: number, currency: Currency) => {
+    if (!user) return;
+    const existing = items.find((b) => b.category_id === category_id);
+    if (amount_limit <= 0) {
+      if (existing) await supabase.from('finance_budgets').delete().eq('id', existing.id);
+    } else if (existing) {
+      await supabase
+        .from('finance_budgets')
+        .update({ amount_limit, currency })
+        .eq('id', existing.id);
+    } else {
+      await supabase
+        .from('finance_budgets')
+        .insert({ user_id: user.id, category_id, month, amount_limit, currency });
+    }
+    await refresh();
+    emit();
+  };
+
+  const remove = async (id: string) => {
+    await supabase.from('finance_budgets').delete().eq('id', id);
+    await refresh();
+    emit();
+  };
+
+  return { items, loading, upsert, remove, refresh };
+}
