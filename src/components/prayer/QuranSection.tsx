@@ -5,7 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Trash2, BookOpen } from 'lucide-react';
 import { SURAHS } from '@/data/surahs';
-import { isoDate, useQuranLogs } from '@/hooks/usePrayer';
+import { useQuranLogs } from '@/hooks/usePrayer';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { todayInTz } from '@/lib/datetime';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -14,6 +16,7 @@ import { toast } from 'sonner';
 export function QuranSection() {
   const { t, i18n } = useTranslation();
   const { logs, add, remove } = useQuranLogs();
+  const { timezone } = useTimezone();
   const [surahNum, setSurahNum] = useState<string>('1');
   const [from, setFrom] = useState('1');
   const [to, setTo] = useState('');
@@ -26,7 +29,7 @@ export function QuranSection() {
     const s = SURAHS.find((x) => x.number === Number(surahNum));
     if (!s || !from) return;
     await add({
-      date: isoDate(new Date()),
+      date: todayInTz(timezone),
       surah_number: s.number,
       surah_name: i18n.language === 'en' ? s.en : s.bn,
       ayat_from: Number(from),
