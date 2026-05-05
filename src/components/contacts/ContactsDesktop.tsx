@@ -241,7 +241,7 @@ export function ContactsDesktop({ onCreate }: { onCreate: (groupId?: string, sub
 
       {/* RIGHT — Detail panel */}
       <section className="flex-1 min-w-0 bg-background">
-        <ContactDetailPanel contactId={selectedId} onCreate={() => onCreate(activeGroupId || undefined, activeSubgroupId || undefined)} />
+        <ContactDetailPanel contactId={selectedId} onCreate={() => onCreate(activeGroupId || undefined, activeSubgroupId || undefined)} onNavigate={(id) => setSelectedId(id)} />
       </section>
 
       {/* Group sheets */}
