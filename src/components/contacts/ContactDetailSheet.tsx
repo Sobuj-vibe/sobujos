@@ -96,6 +96,30 @@ export function ContactDetailSheet({
     refresh();
   };
   const otherContacts = contacts.filter((c) => c.id !== contact.id);
+  const RELATION_PRESETS = ['father of', 'mother of', 'son of', 'daughter of', 'brother of', 'sister of', 'spouse of', 'friend of', 'business partner of', 'colleague of', 'client of', 'mentor of'];
+  const inverseRelation = (rel: string, otherGender?: string | null): string => {
+    const r = rel.toLowerCase().trim();
+    const g = (otherGender || '').toLowerCase();
+    const map: Record<string, string> = {
+      'father of': g === 'male' ? 'son of' : g === 'female' ? 'daughter of' : 'child of',
+      'mother of': g === 'male' ? 'son of' : g === 'female' ? 'daughter of' : 'child of',
+      'son of': g === 'male' ? 'father of' : g === 'female' ? 'mother of' : 'parent of',
+      'daughter of': g === 'male' ? 'father of' : g === 'female' ? 'mother of' : 'parent of',
+      'brother of': g === 'male' ? 'brother of' : g === 'female' ? 'sister of' : 'sibling of',
+      'sister of': g === 'male' ? 'brother of' : g === 'female' ? 'sister of' : 'sibling of',
+      'spouse of': 'spouse of',
+      'husband of': 'wife of',
+      'wife of': 'husband of',
+      'friend of': 'friend of',
+      'business partner of': 'business partner of',
+      'colleague of': 'colleague of',
+      'mentor of': 'mentee of',
+      'mentee of': 'mentor of',
+      'client of': 'service provider of',
+      'service provider of': 'client of',
+    };
+    return map[r] || r;
+  };
 
   return (
     <>
