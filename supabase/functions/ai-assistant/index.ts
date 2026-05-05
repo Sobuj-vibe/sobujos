@@ -177,6 +177,139 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "list_finance_categories",
+      description: "List all finance categories. Optional kind filter (income or expense).",
+      parameters: { type: "object", properties: { kind: { type: "string", enum: ["income","expense"] } } },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_transaction",
+      description: "Add an income or expense transaction. Resolve category by name if id unknown.",
+      parameters: {
+        type: "object",
+        properties: {
+          kind: { type: "string", enum: ["income","expense"] },
+          amount: { type: "number" },
+          currency: { type: "string", enum: ["BDT","CNY","USD"] },
+          category_name: { type: "string", description: "Category name to match (case-insensitive). Will create if missing." },
+          subcategory_name: { type: "string" },
+          pay_for: { type: "string" },
+          payment_method: { type: "string", description: "WeChat, Alipay, Cash, bKash, Nagad, Bank, or Card" },
+          occurred_at: { type: "string", description: "ISO datetime, defaults to now" },
+          note: { type: "string" },
+        },
+        required: ["kind","amount","currency"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_transactions",
+      description: "List recent transactions. Optional kind, days_back, category_name filters.",
+      parameters: {
+        type: "object",
+        properties: {
+          kind: { type: "string", enum: ["income","expense"] },
+          days_back: { type: "number" },
+          category_name: { type: "string" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_loan",
+      description: "Add a loan record (taken or given).",
+      parameters: {
+        type: "object",
+        properties: {
+          direction: { type: "string", enum: ["taken","given"] },
+          person_name: { type: "string" },
+          reason: { type: "string" },
+          amount: { type: "number" },
+          currency: { type: "string", enum: ["BDT","CNY","USD"] },
+          loan_date: { type: "string", description: "YYYY-MM-DD" },
+          expected_return_date: { type: "string", description: "YYYY-MM-DD" },
+          note: { type: "string" },
+        },
+        required: ["direction","person_name","amount","currency"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_loans",
+      description: "List loans. Optional only_open and direction filters.",
+      parameters: {
+        type: "object",
+        properties: {
+          only_open: { type: "boolean" },
+          direction: { type: "string", enum: ["taken","given"] },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "mark_loan_paid",
+      description: "Mark a loan as paid. Provide loan_id, or person_name + amount to find it.",
+      parameters: {
+        type: "object",
+        properties: {
+          loan_id: { type: "string" },
+          person_name: { type: "string" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_recurring",
+      description: "Add a recurring income or expense (e.g. subscription).",
+      parameters: {
+        type: "object",
+        properties: {
+          kind: { type: "string", enum: ["income","expense"] },
+          service_name: { type: "string" },
+          amount: { type: "number" },
+          currency: { type: "string", enum: ["BDT","CNY","USD"] },
+          frequency: { type: "string", enum: ["daily","weekly","monthly","yearly"] },
+          payment_method: { type: "string" },
+          start_date: { type: "string", description: "YYYY-MM-DD" },
+          next_renewal_date: { type: "string", description: "YYYY-MM-DD" },
+          auto_post: { type: "boolean" },
+          note: { type: "string" },
+        },
+        required: ["kind","service_name","amount","currency","frequency"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_recurring",
+      description: "List recurring items.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_finance_summary",
+      description: "Get total income, expense, net, and top expense categories for the last N days (default 30).",
+      parameters: { type: "object", properties: { days: { type: "number" } } },
+    },
+  },
 ];
 
 async function runTool(name: string, args: any, supabase: any, userId: string) {
