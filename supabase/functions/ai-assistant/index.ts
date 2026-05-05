@@ -1,0 +1,432 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const tools = [
+  {
+    type: "function",
+    function: {
+      name: "list_groups",
+      description: "List all task groups for the user. Returns id, name, color, icon.",
+      parameters: { type: "object", properties: {}, additionalProperties: false },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_tasks",
+      description:
+        "List tasks. Optionally filter by group_id, only_open (incomplete), or due_before (YYYY-MM-DD).",
+      parameters: {
+        type: "object",
+        properties: {
+          group_id: { type: "string" },
+          only_open: { type: "boolean" },
+          due_before: { type: "string" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_group",
+      description: "Create a new task group.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          color: { type: "string", enum: ["indigo", "teal", "rose", "emerald", "amber", "sky"] },
+          icon: { type: "string", description: "lucide-react icon name e.g. Folder, Briefcase, Home, Heart, BookOpen, Dumbbell, ShoppingCart, Plane, Code, Music" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_task",
+      description: "Create a new task in a group. Resolve group_id by listing groups first if needed.",
+      parameters: {
+        type: "object",
+        properties: {
+          group_id: { type: "string" },
+          group_name: { type: "string", description: "Use if group_id is unknown; will match by name (case-insensitive). If no match, create the group first." },
+          title: { type: "string" },
+          notes: { type: "string" },
+          due_date: { type: "string", description: "YYYY-MM-DD" },
+          priority: { type: "string", enum: ["low", "medium", "high"] },
+        },
+        required: ["title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_subtask",
+      description: "Create a subtask under a task.",
+      parameters: {
+        type: "object",
+        properties: {
+          task_id: { type: "string" },
+          task_title_match: { type: "string", description: "Use if task_id is unknown; matches task title case-insensitively." },
+          title: { type: "string" },
+        },
+        required: ["title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "complete_task",
+      description: "Mark a task as completed (or uncompleted).",
+      parameters: {
+        type: "object",
+        properties: {
+          task_id: { type: "string" },
+          task_title_match: { type: "string" },
+          completed: { type: "boolean" },
+        },
+        required: ["completed"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_task",
+      description: "Delete a task by id or title match.",
+      parameters: {
+        type: "object",
+        properties: {
+          task_id: { type: "string" },
+          task_title_match: { type: "string" },
+        },
+      },
+    },
+  },
+];
+
+async function runTool(name: string, args: any, supabase: any, userId: string) {
+  switch (name) {
+    case "list_groups": {
+      const { data, error } = await supabase
+        .from("task_groups")
+        .select("id, name, color, icon")
+        .eq("user_id", userId);
+      if (error) throw error;
+      return data;
+    }
+    case "list_tasks": {
+      let q = supabase
+        .from("tasks")
+        .select("id, group_id, title, notes, due_date, priority, completed_at")
+        .eq("user_id", userId);
+      if (args.group_id) q = q.eq("group_id", args.group_id);
+      if (args.only_open) q = q.is("completed_at", null);
+      if (args.due_before) q = q.lte("due_date", args.due_before);
+      const { data, error } = await q.limit(200);
+      if (error) throw error;
+      return data;
+    }
+    case "create_group": {
+      const { data, error } = await supabase
+        .from("task_groups")
+        .insert({
+          user_id: userId,
+          name: args.name,
+          color: args.color || "indigo",
+          icon: args.icon || "Folder",
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+    case "create_task": {
+      let groupId = args.group_id;
+      if (!groupId && args.group_name) {
+        const { data: gs } = await supabase
+          .from("task_groups")
+          .select("id, name")
+          .eq("user_id", userId)
+          .ilike("name", args.group_name);
+        if (gs && gs.length > 0) groupId = gs[0].id;
+        else {
+          const { data: newG, error: gErr } = await supabase
+            .from("task_groups")
+            .insert({ user_id: userId, name: args.group_name, color: "indigo", icon: "Folder" })
+            .select()
+            .single();
+          if (gErr) throw gErr;
+          groupId = newG.id;
+        }
+      }
+      if (!groupId) {
+        const { data: anyG } = await supabase
+          .from("task_groups")
+          .select("id")
+          .eq("user_id", userId)
+          .limit(1);
+        if (anyG && anyG.length) groupId = anyG[0].id;
+        else {
+          const { data: newG, error: gErr } = await supabase
+            .from("task_groups")
+            .insert({ user_id: userId, name: "Inbox", color: "indigo", icon: "Folder" })
+            .select()
+            .single();
+          if (gErr) throw gErr;
+          groupId = newG.id;
+        }
+      }
+      const { data, error } = await supabase
+        .from("tasks")
+        .insert({
+          user_id: userId,
+          group_id: groupId,
+          title: args.title,
+          notes: args.notes ?? null,
+          due_date: args.due_date ?? null,
+          priority: args.priority ?? "medium",
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+    case "create_subtask": {
+      let taskId = args.task_id;
+      if (!taskId && args.task_title_match) {
+        const { data: ts } = await supabase
+          .from("tasks")
+          .select("id")
+          .eq("user_id", userId)
+          .ilike("title", `%${args.task_title_match}%`)
+          .limit(1);
+        if (!ts || !ts.length) throw new Error("Task not found");
+        taskId = ts[0].id;
+      }
+      if (!taskId) throw new Error("task_id or task_title_match required");
+      const { data, error } = await supabase
+        .from("subtasks")
+        .insert({ user_id: userId, task_id: taskId, title: args.title })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+    case "complete_task": {
+      let taskId = args.task_id;
+      if (!taskId && args.task_title_match) {
+        const { data: ts } = await supabase
+          .from("tasks")
+          .select("id")
+          .eq("user_id", userId)
+          .ilike("title", `%${args.task_title_match}%`)
+          .limit(1);
+        if (!ts || !ts.length) throw new Error("Task not found");
+        taskId = ts[0].id;
+      }
+      const { data, error } = await supabase
+        .from("tasks")
+        .update({ completed_at: args.completed ? new Date().toISOString() : null })
+        .eq("id", taskId)
+        .eq("user_id", userId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+    case "delete_task": {
+      let taskId = args.task_id;
+      if (!taskId && args.task_title_match) {
+        const { data: ts } = await supabase
+          .from("tasks")
+          .select("id")
+          .eq("user_id", userId)
+          .ilike("title", `%${args.task_title_match}%`)
+          .limit(1);
+        if (!ts || !ts.length) throw new Error("Task not found");
+        taskId = ts[0].id;
+      }
+      const { error } = await supabase.from("tasks").delete().eq("id", taskId).eq("user_id", userId);
+      if (error) throw error;
+      return { ok: true };
+    }
+  }
+  throw new Error(`Unknown tool: ${name}`);
+}
+
+async function buildContext(supabase: any, userId: string) {
+  const [{ data: groups }, { data: tasks }, { data: profile }] = await Promise.all([
+    supabase.from("task_groups").select("id, name, color, icon").eq("user_id", userId),
+    supabase
+      .from("tasks")
+      .select("id, group_id, title, due_date, priority, completed_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase.from("profiles").select("display_name, language").eq("id", userId).maybeSingle(),
+  ]);
+  const today = new Date().toISOString().slice(0, 10);
+  const open = (tasks || []).filter((t: any) => !t.completed_at);
+  const overdue = open.filter((t: any) => t.due_date && t.due_date < today);
+  return {
+    today,
+    profile,
+    groups: groups || [],
+    open_count: open.length,
+    overdue_count: overdue.length,
+    recent_open_tasks: open.slice(0, 25),
+  };
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing auth" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const token = authHeader.replace("Bearer ", "");
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const { data: userData, error: uErr } = await supabase.auth.getUser(token);
+    if (uErr || !userData.user) {
+      return new Response(JSON.stringify({ error: "Invalid auth" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userId = userData.user.id;
+
+    const { messages: clientMessages, attachments } = await req.json();
+    const ctx = await buildContext(supabase, userId);
+
+    const language = ctx.profile?.language === "en" ? "English" : "Bangla (বাংলা)";
+    const systemPrompt = `You are the AI Assistant for Personal Life OS, a personal productivity app.
+Reply in ${language} unless the user writes in another language.
+Be concise, friendly, and proactive. Use markdown.
+
+You can read the user's data and take actions through tools. Always prefer taking action over just describing how.
+When the user shares an image or PDF (e.g. handwritten notes, screenshot, receipt, syllabus), extract tasks/items and create them via tools, asking only if truly ambiguous.
+
+CONTEXT (live snapshot):
+- Today: ${ctx.today}
+- User: ${ctx.profile?.display_name ?? "Unknown"}
+- Groups (${ctx.groups.length}): ${JSON.stringify(ctx.groups)}
+- Open tasks: ${ctx.open_count} (overdue: ${ctx.overdue_count})
+- Recent open tasks: ${JSON.stringify(ctx.recent_open_tasks)}
+
+Rules:
+- When creating tasks, reuse an existing group when reasonable (match by name).
+- After taking actions, briefly confirm what you did.
+- For multi-step requests, call multiple tools in sequence.`;
+
+    // Build messages. Last user message may include attachments → multimodal content array.
+    const messages: any[] = [{ role: "system", content: systemPrompt }];
+    for (let i = 0; i < clientMessages.length; i++) {
+      const m = clientMessages[i];
+      const isLast = i === clientMessages.length - 1;
+      if (isLast && m.role === "user" && attachments && attachments.length > 0) {
+        const content: any[] = [{ type: "text", text: m.content || "" }];
+        for (const a of attachments) {
+          if (a.type?.startsWith("image/")) {
+            content.push({ type: "image_url", image_url: { url: a.dataUrl } });
+          } else if (a.type === "application/pdf") {
+            content.push({ type: "file", file: { filename: a.name || "file.pdf", file_data: a.dataUrl } });
+          }
+        }
+        messages.push({ role: "user", content });
+      } else {
+        messages.push({ role: m.role, content: m.content });
+      }
+    }
+
+    // Tool-calling loop (max 6 iterations)
+    let finalText = "";
+    const actionsLog: any[] = [];
+    for (let iter = 0; iter < 6; iter++) {
+      const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://lovable.dev",
+          "X-Title": "Personal Life OS",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages,
+          tools,
+          tool_choice: "auto",
+        }),
+      });
+      if (!resp.ok) {
+        const errText = await resp.text();
+        console.error("OpenRouter error", resp.status, errText);
+        return new Response(JSON.stringify({ error: `AI error: ${resp.status}` }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const data = await resp.json();
+      const choice = data.choices?.[0];
+      const msg = choice?.message;
+      if (!msg) break;
+
+      messages.push(msg);
+
+      const toolCalls = msg.tool_calls;
+      if (!toolCalls || toolCalls.length === 0) {
+        finalText = msg.content || "";
+        break;
+      }
+
+      for (const tc of toolCalls) {
+        let result: any;
+        try {
+          const args = typeof tc.function.arguments === "string"
+            ? JSON.parse(tc.function.arguments || "{}")
+            : tc.function.arguments;
+          result = await runTool(tc.function.name, args, supabase, userId);
+          actionsLog.push({ tool: tc.function.name, args, ok: true });
+        } catch (e: any) {
+          result = { error: e.message };
+          actionsLog.push({ tool: tc.function.name, ok: false, error: e.message });
+        }
+        messages.push({
+          role: "tool",
+          tool_call_id: tc.id,
+          content: JSON.stringify(result),
+        });
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ reply: finalText || "Done.", actions: actionsLog }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  } catch (e: any) {
+    console.error("ai-assistant error", e);
+    return new Response(JSON.stringify({ error: e.message || "Unknown error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});

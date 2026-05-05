@@ -20,6 +20,12 @@ export function useTaskGroups() {
 
   useEffect(() => { refresh(); }, [user]);
 
+  useEffect(() => {
+    const h = () => refresh();
+    window.addEventListener('ai-data-changed', h);
+    return () => window.removeEventListener('ai-data-changed', h);
+  }, [user]);
+
   return { groups, loading, refresh };
 }
 
@@ -38,6 +44,12 @@ export function useTasks(groupId?: string) {
   };
 
   useEffect(() => { refresh(); }, [user, groupId]);
+
+  useEffect(() => {
+    const h = () => refresh();
+    window.addEventListener('ai-data-changed', h);
+    return () => window.removeEventListener('ai-data-changed', h);
+  }, [user, groupId]);
 
   return { tasks, loading, refresh };
 }
