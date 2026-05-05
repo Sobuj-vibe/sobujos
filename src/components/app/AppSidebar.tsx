@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { CheckSquare, Moon, Wallet, User, Sparkles, Sun, Cloud, LogOut, Languages } from 'lucide-react';
+import { CheckSquare, Moon, Wallet, User, Sparkles, Sun, Cloud, LogOut, Languages, Target } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   Sidebar,
@@ -29,6 +29,7 @@ const navItems = [
   { to: '/app/tasks', icon: CheckSquare, key: 'tasks' as const },
   { to: '/app/prayer', icon: Moon, key: 'prayer' as const },
   { to: '/app/finance', icon: Wallet, key: 'finance' as const },
+  { to: '/app/habits', icon: Target, key: 'habits' as const },
   { to: '/app/profile', icon: User, key: 'profile' as const },
 ];
 
