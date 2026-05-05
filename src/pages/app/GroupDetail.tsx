@@ -13,6 +13,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { todayInTz } from '@/lib/datetime';
 
 export default function GroupDetail() {
   const { t } = useTranslation();
@@ -24,13 +26,14 @@ export default function GroupDetail() {
   const [editing, setEditing] = useState<Task | null>(null);
   const [groupEditOpen, setGroupEditOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const { timezone } = useTimezone();
 
   useEffect(() => {
     if (!id) return;
     supabase.from('task_groups').select('*').eq('id', id).maybeSingle().then(({ data }) => setGroup(data as any));
   }, [id]);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInTz(timezone);
   const grouped = useMemo(() => {
     const todayList: Task[] = [], upcoming: Task[] = [], done: Task[] = [];
     tasks.forEach((tk) => {
