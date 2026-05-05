@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { isoDateInTz } from '@/lib/datetime';
 
 export type PrayerName = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
 export type PrayerStatus = 'on_time' | 'late' | 'qaza';
@@ -25,6 +27,7 @@ export type QuranLog = {
   created_at: string;
 };
 
+/** @deprecated Use `isoDateInTz` from `@/lib/datetime`. */
 export function isoDate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
@@ -35,6 +38,7 @@ function emit() {
 
 export function usePrayerLogs(daysBack = 90) {
   const { user } = useAuth();
+  const { timezone } = useTimezone();
   const [logs, setLogs] = useState<PrayerLog[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,11 +50,11 @@ export function usePrayerLogs(daysBack = 90) {
       .from('prayer_logs')
       .select('id,date,prayer,status,made_up_at')
       .eq('user_id', user.id)
-      .gte('date', isoDate(from))
+      .gte('date', isoDateInTz(from, timezone))
       .order('date', { ascending: false });
     setLogs((data as PrayerLog[]) || []);
     setLoading(false);
-  }, [user, daysBack]);
+  }, [user, daysBack, timezone]);
 
   useEffect(() => { refresh(); }, [refresh]);
   useEffect(() => {
