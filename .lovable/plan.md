@@ -1,86 +1,101 @@
-# Finance Tab — Build Plan
+# Habits & Goals Module — Final Build Plan
 
-A complete personal finance module replacing the `/app/finance` placeholder, with bilingual support, multi-currency tracking, image receipts, and full AI integration.
+A focused life-management module that pairs **daily habits** (quick check-ins with streaks + heatmap) with **goals** (long-horizon outcomes broken into milestones). Built to match the existing Tasks/Prayer/Finance patterns: bilingual, sub-tab switcher, AI integrated, mobile-first.
 
 ## Page layout
 
-Sub-tab pill switcher at the top (mobile-friendly), with the **Dashboard** always being the default view:
+Route: `/app/habits` — new sidebar entry "Habits" (icon: `Target`).
+
+Sub-tab pill switcher (mirrors Prayer/Finance):
 
 ```text
-[ Dashboard | Income | Expense | Loans | Recurring ]
+[ Today | Habits | Goals | Stats ]
 ```
 
-```text
-┌──────────────── Dashboard ────────────────┐
-│ Month summary cards:                      │
-│   Income · Expense · Net · Balance trend  │
-│ Currency switcher (BDT / CNY / USD / All) │
-│ Mini charts: 30-day income vs expense     │
-│ Category breakdown (top 5 expense)        │
-│ Upcoming recurring renewals (next 7 days) │
-│ Outstanding loans (given / taken totals)  │
-│ Recent transactions (latest 5)            │
-└───────────────────────────────────────────┘
-```
+### Today (default)
 
-## Sections
+- Greeting + date + overall day completion ring (e.g. "5 / 8 done · 62%")
+- **Time-of-day groups**: Morning · Afternoon · Evening · Anytime
+- Each habit row: icon, name, streak flame badge, check button (boolean) **or** counter buttons +1 / -1 / target (quantifiable), long-press to log custom value/note
+- Skip button per habit (counts as "vacation day" — preserves streak, doesn't break it)
+- Bottom: "Top goal of the week" mini card (next milestone + progress bar)
 
-### 1. Income & Expense (shared form/list pattern)
+### Habits
 
-Fields:
+- List of all habits, grouped by status (Active / Paused / Archived)
+- Card shows: icon, name, current streak, best streak, last 7-day mini-dots, weekly target (e.g. "5 / 7 days"), edit menu
+- "+ New habit" sheet:
+  - Name, icon, color
+  - **Type**: Boolean (done/not done) | Counter (e.g. 30 push-ups) | Duration (e.g. 20 min meditation)
+  - **Target unit** (only for counter/duration): reps, pages, minutes, glasses, km, etc. (free text + presets)
+  - **Daily target value** (e.g. 8 glasses, 30 min)
+  - **Schedule**: Every day | Specific weekdays | X times per week
+  - **Time of day**: Morning / Afternoon / Evening / Anytime
+  - **Reminder time** (optional, stored — used later if push enabled)
+  - **Linked goal** (optional dropdown)
+  - **Why** (motivation text shown on card flip)
 
-- **Category** dropdown + **Sub-category** dropdown (filtered by category) (option to add new category and sub-category)
-- **Amount** + **Currency** (BDT, CNY, USD)
-- **Pay for / From** (free text, e.g. "Salary", "Groceries at Walmart")
-- **Payment method**: WeChat, Alipay, Cash, bKash, Nagad, Bank, Card (Dropdown)
-- **Receipt image** (upload to storage)
-- **Date & time** (datetime picker, defaults to now)
-- **Note** (optional)
+### Goals
 
-Default categories seeded per user on first visit:
+- List of goals as cards. Each card shows: title, deadline countdown, progress %, milestone count (e.g. 3/5), linked-habit chips.
+- "+ New goal" sheet:
+  - Title, description, category (Health, Career, Learning, Finance, Spiritual, Personal, Other)
+  - **Type**: Outcome (e.g. "Lose 5kg") | Process (e.g. "Read 12 books this year") | Project (one-shot)
+  - **Target value + unit** (optional, for measurable goals)
+  - **Start date + deadline**
+  - **Milestones** (sub-checkpoints with their own dates) — repeatable rows (AI will break down the goal into multiple milestones, and you can also add manually, and if needed, you can edit the existing milestones)
+  - **Linked habits** (multi-select existing habits that contribute)
+  - **Weekly review reminder** (toggle)
+- Goal detail view: progress chart, milestone checklist, linked habits with their streaks, notes log (timestamped quick notes added from the goal page).
 
-- **Income**:  University Stipend, Salary (Monthly, Bonus, Overtime), Freelance, Business, Investment (Dividend, Interest, Capital gain), Gift, Other,
-- **Expense**: Food (Groceries, Restaurant, Snacks), Transport (Metro, Didi, Bus, Train, Air), Housing (Rent, Utilities, Maintenance), Education (Tuition, Books, Tools), Health (Medicine, Doctor), Shopping (Clothes, Electronics), Entertainment, Bills, Charity/Sadaqah, Travel, Other
+### Stats
 
-User can add/edit/delete custom categories and sub-categories.
+- **Yearly heatmap** per habit (GitHub-style 365-day grid, color intensity = completion). Reuses Kaza heatmap pattern from Prayer.
+- **Streak leaderboard** — your habits sorted by current streak
+- **Weekly consistency** — bar chart, last 12 weeks, % of habits done per week
+- **Best day of week** — which weekday you're most consistent
+- **Goal progress** — overall % across all active goals
 
-List view: grouped by date, shows category icon, amount in original currency + converted to user's primary currency, payment method badge, and tappable thumbnail of receipt.
+## Cross-module integrations
 
-Filters: date range, category, currency, payment method, search by note.
+1. **Prayer ↔ Habits**: 5 daily prayers automatically appear as a "synced" habit set in Today view (read-only, ticking them in either place updates both via the prayer logs).
+2. **Tasks ↔ Goals**: From a goal's detail page, "Create task" pre-fills the task with the goal name as a tag in notes; tasks can optionally be linked to a milestone (stored in `tasks.notes` reference for now to avoid schema bloat).
+3. **Finance ↔ Goals**: A goal can have a **savings target** (e.g. "Save 50,000 BDT for laptop") — progress auto-fills from a chosen finance category's net contribution this month/year.
 
-### 2. Loans
+## AI features
 
-Two tabs inside: **Taken by me** | **Given by me**  
-Fields: person name, reason, date, amount + currency, expected return date, status (open / paid), note.  
-Each loan card shows days remaining/overdue (shows card color blue if given by me, Orange if taken by me, Green if Paid | color opacity 50%), with a one-tap **"Mark as paid"** button (records paid date).
-Summary at top: total outstanding given / taken per currency.
+Extend `ai-assistant` with new tools:
 
-### 3. Recurring
+- `list_habits`, `add_habit`, `update_habit`, `archive_habit`
+- `log_habit` (today by default; supports value for counter/duration)
+- `skip_habit_today`
+- `list_goals`, `add_goal`, `update_goal_progress`, `add_milestone`, `complete_milestone`
+- `get_habit_stats` (streak, last 30-day completion, consistency %)
+- `get_today_habits` (what's left for today)
+- `suggest_habits_for_goal` (AI proposes 2–4 supporting habits given a goal title — user approves to create)
+- `weekly_review` (AI generates a short reflection: streaks held/broken, goal progress, suggestions for next week)
 
-Two types: **Recurring Income** | **Recurring Expense** (subscriptions live here).
-Fields: service name, amount + currency, payment method, category, start date, next renewal date, frequency (Daily / Weekly / Monthly / Yearly), auto-debit toggle, note, optional logo/screenshot.
-Card list shows next renewal countdown (e.g., "Renews in 3 days") and total monthly cost.
-A daily client-side check auto-creates a transaction on renewal date and rolls the next renewal date forward (for items marked auto-post).  
-Card color shows red if Renew in 5 Days.
+Natural-language examples that should work:
 
-### 4. Dashboard
+- "Add a habit: meditate 10 min every morning"
+- "I drank 6 glasses of water today" → updates the counter habit
+- "How am I doing on my reading goal?"
+- "Give me my weekly review"
 
-Composed from all above tables. All amounts shown in user's **primary currency** (set in Profile, default BDT) using configurable exchange rates stored per user.
+## Bonus features included
 
-## Bonus features (recommended additions)
+- **Habit templates** — quick-start library: Drink water, Exercise, Read, Sleep early, No social media after 10 pm, Walk 8k steps, Journal, Stretch, Thesis & Research Work, etc. One-tap to add.
+- **Streak freeze** — 2 free freezes per month auto-applied if you miss a day (configurable, off by default to keep it strict).
+- **Why card** — long-press a habit shows your "why" — keeps motivation visible.
+- **Yearly heatmap export** — share-as-image button (uses canvas) on Stats tab.
+- **Smart "today is light" badge** — if scheduled habits for today < 4, show a "good day to add one more" nudge.
 
-1. **Budget targets** — monthly cap per category; dashboard shows progress bars and warns when nearing limit.
-2. **Currency exchange rates** are editable in settings (BDT/CNY/USD pairs); used to normalize the dashboard, add a manual currency rate, and the base currency is CNY.
-3. **Sadaqah / Zakat tracker** — auto-tag charity expenses; yearly Zakat calculator on net savings (2.5%).
-4. **CSV export** of transactions for any month.
-5. **Receipt OCR via AI** — when uploading a receipt image, AI extracts the amount, vendor, and date, and pre-fills the form.
-6. **Recurring renewal reminders** — toast notification when a subscription is renewing in ≤5 days.
-7. **Search & quick-add** — natural language input ("Spent 250 BDT on groceries with bKash") that AI parses into a transaction.
+## Out of scope (saved for later)
 
-## Out of scope (call out for later)
-
-- Bank account sync (no Open Banking).
-- Push notifications (browser Web Push out of scope).
+- Push notifications (web push) — fields stored, delivery later
+- Mood/journaling — separate module
+- Bad-habit/quit counter — can be added later as a habit type
+- Social sharing / friends
 
 ---
 
@@ -88,56 +103,98 @@ Composed from all above tables. All amounts shown in user's **primary currency**
 
 ### Database (new tables, RLS by `user_id`)
 
-- `finance_categories` — `id, user_id, kind ('income'|'expense'), name, icon, color, position, created_at`
-- `finance_subcategories` — `id, user_id, category_id, name, position`
-- `finance_transactions` — `id, user_id, kind ('income'|'expense'), category_id, subcategory_id (null), amount (numeric), currency ('BDT'|'CNY'|'USD'), pay_for (text), payment_method (text), receipt_url (text null), occurred_at (timestamptz), note (text null), recurring_id (uuid null, links to source recurring), created_at`
-- `finance_loans` — `id, user_id, direction ('taken'|'given'), person_name, reason, amount, currency, loan_date, expected_return_date, paid_at (timestamptz null), note, created_at`
-- `finance_recurring` — `id, user_id, kind ('income'|'expense'), service_name, amount, currency, payment_method, category_id, start_date, next_renewal_date, frequency ('daily'|'weekly'|'monthly'|'yearly'), auto_post (bool default false), logo_url (text null), note, created_at`
-- `finance_budgets` — `id, user_id, category_id, month (date, first day), amount_limit, currency`
-- `finance_settings` — `id, user_id unique, primary_currency, fx_bdt_per_usd, fx_bdt_per_cny`
+```text
+habits
+  id uuid pk, user_id uuid, name text, icon text, color text,
+  type text ('boolean'|'counter'|'duration'),
+  target_unit text null, target_value numeric null,
+  schedule_kind text ('daily'|'weekdays'|'weekly_count'),
+  schedule_days int[] null,         -- e.g. [1,2,3,4,5] for weekdays
+  weekly_count int null,            -- if schedule_kind='weekly_count'
+  time_of_day text ('morning'|'afternoon'|'evening'|'anytime'),
+  reminder_time time null,
+  goal_id uuid null,                -- soft FK to goals.id
+  why text null,
+  status text ('active'|'paused'|'archived') default 'active',
+  position int default 0,
+  freezes_per_month int default 0,
+  created_at timestamptz default now()
 
-Seed default categories on first dashboard load (idempotent: skip if user already has any).
+habit_logs
+  id uuid pk, user_id uuid, habit_id uuid,
+  date date,                        -- the day this log applies to
+  value numeric default 1,          -- 1 for boolean done; counter value otherwise
+  status text ('done'|'partial'|'skipped'|'frozen') default 'done',
+  note text null,
+  logged_at timestamptz default now()
+  unique (user_id, habit_id, date)  -- one row per habit per day (upsert)
 
-### Storage
+goals
+  id uuid pk, user_id uuid,
+  title text, description text null,
+  category text, type text ('outcome'|'process'|'project'),
+  target_value numeric null, target_unit text null,
+  current_value numeric default 0,
+  start_date date default current_date,
+  deadline date null,
+  status text ('active'|'completed'|'archived') default 'active',
+  finance_category_id uuid null,    -- optional auto-progress source
+  weekly_review boolean default false,
+  created_at timestamptz default now(),
+  completed_at timestamptz null
 
-- New bucket `finance-receipts` (private). RLS: users can only read/write paths under `{user_id}/`.
+goal_milestones
+  id uuid pk, user_id uuid, goal_id uuid,
+  title text, target_date date null,
+  position int default 0,
+  completed_at timestamptz null
+
+goal_notes
+  id uuid pk, user_id uuid, goal_id uuid,
+  body text, created_at timestamptz default now()
+```
+
+All tables: `alter table ... enable row level security` + `create policy "x_all" for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id)`.
+
+Indexes: `(user_id, date)` on `habit_logs`; `(user_id, status)` on habits and goals.
 
 ### Frontend
 
-- Replace placeholder route with `src/pages/app/Finance.tsx` (sub-tab switcher matching Prayer pattern).
-- New folder `src/components/finance/`:
-  - `FinanceDashboard.tsx`, `FinanceTabs.tsx`
-  - `TransactionForm.tsx` (shared income/expense), `TransactionList.tsx`, `TransactionRow.tsx`, `TransactionFilters.tsx`
-  - `CategoryManager.tsx` (manage categories + subcategories)
-  - `LoanForm.tsx`, `LoanList.tsx`, `LoanCard.tsx`
-  - `RecurringForm.tsx`, `RecurringList.tsx`, `RecurringCard.tsx`
-  - `ReceiptUpload.tsx` (image picker + preview, calls storage)
-  - `BudgetCard.tsx`, `ZakatCard.tsx`
-  - `CurrencyAmount.tsx` (display helper that converts using settings)
-- New hooks: `src/hooks/useFinance.ts` (transactions, categories, settings) and `src/hooks/useLoans.ts`, `src/hooks/useRecurring.ts`. All emit `ai-data-changed` after mutations.
-- `src/data/financeDefaults.ts` — default category seed.
+- New folder `src/components/habits/`:
+  - `HabitsTabs.tsx`, `TodayView.tsx`, `HabitsList.tsx`, `GoalsList.tsx`, `StatsView.tsx`
+  - `HabitCard.tsx`, `HabitFormSheet.tsx`, `HabitCheckButton.tsx` (handles boolean/counter/duration)
+  - `GoalCard.tsx`, `GoalFormSheet.tsx`, `GoalDetailSheet.tsx`, `MilestoneRow.tsx`
+  - `YearlyHeatmap.tsx` (reusable, also good for Prayer Kaza later)
+  - `StreakBadge.tsx`, `WeekDots.tsx` (last-7-day mini indicator)
+  - `HabitTemplates.tsx` (template picker grid)
+- New page: `src/pages/app/Habits.tsx`
+- New hooks: `src/hooks/useHabits.ts`, `src/hooks/useGoals.ts` — both emit `ai-data-changed` after mutations and expose `refresh()`
+- New data: `src/data/habitTemplates.ts` (preset library, bilingual)
+- `src/components/app/AppSidebar.tsx` — add Habits nav entry
+- `src/App.tsx` — add `/app/habits` route
 
-### Edge functions
+### Streak math (client-side, in `useHabits`)
 
-- New `finance-ocr` — accepts a receipt image URL, calls Lovable AI vision (`google/gemini-2.5-flash`) with structured tool-calling to return `{amount, currency, vendor, occurred_at, suggested_category}`. Validates JWT.
-- Extend existing `ai-assistant` with new tools:
-  - `list_finance_categories`, `create_finance_category`
-  - `list_transactions` (filter by kind, date range, category)
-  - `add_transaction` (income or expense)
-  - `list_loans`, `add_loan`, `mark_loan_paid`
-  - `list_recurring`, `add_recurring`
-  - `get_finance_summary` (current-month totals per currency, top categories)
-  - `parse_natural_finance_input` (handled by the model itself; tools above are the action layer)
+For each habit:
+
+- Build a date set from `habit_logs` where `status in ('done','partial','frozen')` and value meets target (if quantifiable).
+- Walk back from today over scheduled days only. `skipped` breaks the streak unless freeze applied.
+- Cache per habit; recompute on mutation.
+
+### AI assistant tool additions
+
+In `supabase/functions/ai-assistant/index.ts`, register the new tools listed above. Each tool validates JWT, scopes by `user_id`, and returns compact JSON. `weekly_review` aggregates last-7-day logs + goal deltas server-side and lets the model phrase the summary in user's language.
 
 ### i18n
 
-Add `finance.*` keys in `src/i18n/en.ts` and `src/i18n/bn.ts` for: section titles, all categories, payment methods, frequencies, currencies, button labels, empty states, dashboard cards, tooltips.
+Add `habits.*` keys in `src/i18n/en.ts` and `src/i18n/bn.ts` for: tab titles, time-of-day groups, type/schedule labels, all template names, button labels (Check, Skip, Freeze, +1, -1), empty states, stats card titles, goal categories/types, AI nudges.
 
 ### Acceptance
 
-- `/app/finance` shows Dashboard by default with month summary, recent transactions, and upcoming renewals.
-- Adding an income/expense with a receipt image stores it, displays the thumbnail in the list, and updates the dashboard immediately.
-- Loans show outstanding totals and let me mark them paid in one tap.
-- Recurring items show next renewal countdown; auto-post creates a transaction on the due date.
-- AI assistant can answer "how much did I spend on food this month?" and "log 250 BDT bKash expense for groceries" using the new tools.
-- Switching language toggles every label including category names where translations exist.
+- `/app/habits` opens to Today, lists today's scheduled habits grouped by time of day, shows real streaks.
+- Adding a habit (boolean/counter/duration) and logging it updates streak, week-dots, and yearly heatmap immediately.
+- Goals show progress %, can have milestones added/completed, and a goal detail view lists linked habits with their streaks.
+- Stats tab renders a yearly heatmap and weekly consistency chart from real logs.
+- Sidebar shows "Habits" entry that highlights when active.
+- AI: "log my water habit, 7 glasses" updates the counter; "how's my reading goal?" returns progress; "weekly review" returns a coherent summary in the active language.
+- Switching between English and Bengali updates every label.

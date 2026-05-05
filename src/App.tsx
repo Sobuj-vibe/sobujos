@@ -16,6 +16,7 @@ import GroupDetail from "./pages/app/GroupDetail";
 import Profile from "./pages/app/Profile";
 import Prayer from "./pages/app/Prayer";
 import Finance from "./pages/app/Finance";
+import Habits from "./pages/app/Habits";
 import { Placeholder } from "./pages/app/Placeholder";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound.tsx";
@@ -45,6 +46,7 @@ const App = () => (
                   <Route path="/app/tasks/:id" element={<GroupDetail />} />
                   <Route path="/app/prayer" element={<Prayer />} />
                   <Route path="/app/finance" element={<Finance />} />
+                  <Route path="/app/habits" element={<Habits />} />
                   <Route path="/app/profile" element={<Profile />} />
                 </Route>
               </Route>
