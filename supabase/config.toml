@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.finance-ocr]
 verify_jwt = false
+
+[functions.lifeos-mcp]
+verify_jwt = false
