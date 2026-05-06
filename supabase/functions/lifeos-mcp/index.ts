@@ -27,8 +27,7 @@ async function run<T>(p: PromiseLike<{ data: T; error: any }>): Promise<T> {
 const mcp = new McpServer({ name: "lifeos-mcp", version: "1.0.0" });
 
 /* whoami */
-mcp.tool({
-  name: "whoami",
+mcp.tool("whoami", {
   description: "Returns bound user_id, display name, timezone, primary currency, language.",
   inputSchema: { type: "object", properties: {} },
   handler: async () => {
@@ -43,16 +42,14 @@ mcp.tool({
 });
 
 /* Task Groups */
-mcp.tool({
-  name: "task_groups_list",
+mcp.tool("task_groups_list", {
   description: "List all task groups.",
   inputSchema: { type: "object", properties: {} },
   handler: async () =>
     ok(await run(sb.from("task_groups").select("*").eq("user_id", USER_ID).order("position"))),
 });
 
-mcp.tool({
-  name: "task_groups_create",
+mcp.tool("task_groups_create", {
   description: "Create a task group. Color: indigo|teal|rose|emerald|amber|sky. Icon: lucide name.",
   inputSchema: {
     type: "object",
@@ -69,8 +66,7 @@ mcp.tool({
 });
 
 /* Tasks */
-mcp.tool({
-  name: "tasks_list",
+mcp.tool("tasks_list", {
   description: "List tasks. Filter by group_id, only_open, due_before/due_on (YYYY-MM-DD).",
   inputSchema: {
     type: "object",
@@ -89,8 +85,7 @@ mcp.tool({
   },
 });
 
-mcp.tool({
-  name: "tasks_create",
+mcp.tool("tasks_create", {
   description: "Create a task. priority: low|medium|high. due_date YYYY-MM-DD.",
   inputSchema: {
     type: "object",
@@ -111,8 +106,7 @@ mcp.tool({
     )),
 });
 
-mcp.tool({
-  name: "tasks_update",
+mcp.tool("tasks_update", {
   description: "Update a task. Set completed=true to mark done, false to reopen.",
   inputSchema: {
     type: "object",
@@ -130,8 +124,7 @@ mcp.tool({
   },
 });
 
-mcp.tool({
-  name: "tasks_delete",
+mcp.tool("tasks_delete", {
   description: "Delete a task by id.",
   inputSchema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
   handler: async (a: any) => {
@@ -141,8 +134,7 @@ mcp.tool({
 });
 
 /* Habits & Goals */
-mcp.tool({
-  name: "habits_list",
+mcp.tool("habits_list", {
   description: "List habits. status: active|paused|archived (default active).",
   inputSchema: { type: "object", properties: { status: { type: "string" } } },
   handler: async (a: any) =>
@@ -151,8 +143,7 @@ mcp.tool({
     )),
 });
 
-mcp.tool({
-  name: "habits_today",
+mcp.tool("habits_today", {
   description: "List active habits with today's log status. date YYYY-MM-DD (default today UTC).",
   inputSchema: { type: "object", properties: { date: { type: "string" } } },
   handler: async (a: any) => {
@@ -164,8 +155,7 @@ mcp.tool({
   },
 });
 
-mcp.tool({
-  name: "habits_log",
+mcp.tool("habits_log", {
   description: "Log a habit for a date. status: done|skipped|missed. value optional (numeric habits).",
   inputSchema: {
     type: "object",
@@ -186,8 +176,7 @@ mcp.tool({
   },
 });
 
-mcp.tool({
-  name: "goals_list",
+mcp.tool("goals_list", {
   description: "List goals. status: active|completed|archived (default active).",
   inputSchema: { type: "object", properties: { status: { type: "string" } } },
   handler: async (a: any) =>
@@ -196,8 +185,7 @@ mcp.tool({
     )),
 });
 
-mcp.tool({
-  name: "goals_create",
+mcp.tool("goals_create", {
   description: "Create a goal. type: outcome|process. category free text.",
   inputSchema: {
     type: "object",
@@ -219,8 +207,7 @@ mcp.tool({
     )),
 });
 
-mcp.tool({
-  name: "goals_update_progress",
+mcp.tool("goals_update_progress", {
   description: "Update a goal's current_value, or mark complete.",
   inputSchema: {
     type: "object",
@@ -236,8 +223,7 @@ mcp.tool({
 });
 
 /* Prayer */
-mcp.tool({
-  name: "prayer_log",
+mcp.tool("prayer_log", {
   description: "Log a prayer. prayer: fajr|dhuhr|asr|maghrib|isha. status: on_time|late|qaza.",
   inputSchema: {
     type: "object",
@@ -253,8 +239,7 @@ mcp.tool({
     )),
 });
 
-mcp.tool({
-  name: "prayer_day_summary",
+mcp.tool("prayer_day_summary", {
   description: "Get all 5 prayer statuses for a given date (YYYY-MM-DD).",
   inputSchema: { type: "object", properties: { date: { type: "string" } }, required: ["date"] },
   handler: async (a: any) =>
@@ -263,8 +248,7 @@ mcp.tool({
     )),
 });
 
-mcp.tool({
-  name: "quran_log_add",
+mcp.tool("quran_log_add", {
   description: "Log Quran reading. date YYYY-MM-DD, surah_number 1-114.",
   inputSchema: {
     type: "object",
@@ -285,8 +269,7 @@ mcp.tool({
 });
 
 /* Finance */
-mcp.tool({
-  name: "finance_categories_list",
+mcp.tool("finance_categories_list", {
   description: "List finance categories. kind: income|expense (optional).",
   inputSchema: { type: "object", properties: { kind: { type: "string" } } },
   handler: async (a: any) => {
@@ -296,8 +279,7 @@ mcp.tool({
   },
 });
 
-mcp.tool({
-  name: "finance_transactions_list",
+mcp.tool("finance_transactions_list", {
   description: "List transactions. Filter by kind, category_id, date range (YYYY-MM-DD).",
   inputSchema: {
     type: "object",
@@ -316,8 +298,7 @@ mcp.tool({
   },
 });
 
-mcp.tool({
-  name: "finance_transaction_add",
+mcp.tool("finance_transaction_add", {
   description: "Add a transaction. kind: income|expense. currency: BDT|USD|CNY.",
   inputSchema: {
     type: "object",
@@ -341,8 +322,7 @@ mcp.tool({
     )),
 });
 
-mcp.tool({
-  name: "finance_summary",
+mcp.tool("finance_summary", {
   description: "Income/expense/net per currency for a month (YYYY-MM).",
   inputSchema: { type: "object", properties: { month: { type: "string" } }, required: ["month"] },
   handler: async (a: any) => {
@@ -364,8 +344,7 @@ mcp.tool({
   },
 });
 
-mcp.tool({
-  name: "finance_loans_list",
+mcp.tool("finance_loans_list", {
   description: "List loans. direction: lent|borrowed (optional). only_open=true to skip paid.",
   inputSchema: {
     type: "object",
@@ -379,8 +358,7 @@ mcp.tool({
   },
 });
 
-mcp.tool({
-  name: "finance_loan_add",
+mcp.tool("finance_loan_add", {
   description: "Record a loan. direction: lent|borrowed.",
   inputSchema: {
     type: "object",
@@ -405,8 +383,7 @@ mcp.tool({
 });
 
 /* Contacts / CRM */
-mcp.tool({
-  name: "contact_groups_list",
+mcp.tool("contact_groups_list", {
   description: "List contact groups and subgroups.",
   inputSchema: { type: "object", properties: {} },
   handler: async () => {
@@ -418,8 +395,7 @@ mcp.tool({
   },
 });
 
-mcp.tool({
-  name: "contacts_search",
+mcp.tool("contacts_search", {
   description: "Search contacts. Filter by query (name), group_id, subgroup_id, only_favorite.",
   inputSchema: {
     type: "object",
@@ -438,8 +414,7 @@ mcp.tool({
   },
 });
 
-mcp.tool({
-  name: "contacts_get",
+mcp.tool("contacts_get", {
   description: "Full contact profile: contact + phones, emails, addresses, socials, notes, events, relations.",
   inputSchema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
   handler: async (a: any) => {
@@ -457,8 +432,7 @@ mcp.tool({
   },
 });
 
-mcp.tool({
-  name: "contacts_create",
+mcp.tool("contacts_create", {
   description: "Create a contact. group_id optional. gender: male|female|other|prefer_not_to_say.",
   inputSchema: {
     type: "object",
@@ -481,8 +455,7 @@ mcp.tool({
   },
 });
 
-mcp.tool({
-  name: "contacts_update",
+mcp.tool("contacts_update", {
   description: "Update a contact's profile fields.",
   inputSchema: {
     type: "object",
@@ -502,8 +475,7 @@ mcp.tool({
   },
 });
 
-mcp.tool({
-  name: "contact_note_add",
+mcp.tool("contact_note_add", {
   description: "Add a note to a contact.",
   inputSchema: {
     type: "object",
@@ -518,8 +490,7 @@ mcp.tool({
     )),
 });
 
-mcp.tool({
-  name: "contact_relation_link",
+mcp.tool("contact_relation_link", {
   description: "Link two contacts. relation example: 'father of', 'friend of', 'business partner of'.",
   inputSchema: {
     type: "object",
@@ -563,6 +534,7 @@ app.use("*", async (c, next) => {
   c.res.headers.set("Access-Control-Allow-Origin", "*");
 });
 
-app.all("/*", async (c) => transport.handleRequest(c.req.raw, mcp));
+const handler = transport.bind(mcp);
+app.all("/*", (c) => handler(c.req.raw));
 
 Deno.serve(app.fetch);
