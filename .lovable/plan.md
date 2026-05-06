@@ -1,136 +1,141 @@
-# Personal CRM Module — Plan
+# Plan: LifeOS MCP Server for Claude
 
-A new top-level module `/app/contacts` that lets you store people as rich profiles, organize them into Contact Groups → Sub‑groups (e.g. **University → Batch 2018**, **RBIT Clients → Active**, **Service Sellers → Hosting**), and keep multiple notes, social links, and timeline events per person.
+## Important architecture note
 
----
+Your LifeOS is **not** a "React + Node backend" app. It's:
 
-## 1. Core Module (the must‑have you described)
+- **React (Vite) frontend** (`src/`)
+- **Supabase Cloud backend** — Postgres database with Row-Level Security, plus 3 Deno Edge Functions (`ai-assistant`, `finance-ocr`, `prayer-hadith`)
 
-### Contact Groups & Sub‑groups
+There are **no REST endpoints** in the traditional sense. The frontend talks to Postgres directly through the Supabase JS client, and RLS policies enforce that `auth.uid() = user_id` on every table. So the MCP server has two viable shapes — pick one before building.
 
-- Create / rename / recolor / reorder groups (e.g. *University, RBIT Clients, Service Sellers, Family, Friends, Others*).
-- Each group can have multiple sub‑groups (e.g. *Service Sellers → Hosting, Domain, Design*).
-- Default groups seeded on first visit (you can edit/delete).
-- A contact lives in **one sub‑group** (or directly under a group if no sub‑group), and can additionally be assigned **labels/tags** for cross‑cutting (VIP, Lead, Paid, Friend…).
+## Choose the MCP server shape
 
-### Contact Profile (the person record)
+**Option A — Direct Supabase access (recommended)**
+The MCP server holds the `SUPABASE_SERVICE_ROLE_KEY` and a fixed `LIFEOS_USER_ID`. Each MCP tool runs a typed query against Postgres (e.g. `supabase.from('tasks').insert(...).eq('user_id', LIFEOS_USER_ID)`). Simple, fast, full coverage of all 30 tables.
 
-Fields, all optional except name:
+**Option B — Wrap the existing `ai-assistant` edge function**
+That function already exposes ~20 tool definitions (list_groups, create_task, log_habit, add_transaction, etc.) but only for Tasks/Habits/Finance/Prayer — not Contacts. You'd lose the new CRM module unless we extend it.
 
-- **Identity**: full name, nickname, avatar (upload to existing `avatars` bucket), gender, date of birth, blood group, location.
-- **Reach**: multiple phone numbers (with label: mobile/work/home + WhatsApp, wechat toggle), multiple emails, multiple addresses (label + city + country).
-- **Online**: company, job title, website, and a **dynamic list of social links** (Facebook, Instagram, X, LinkedIn, GitHub, YouTube, Telegram, Discord, custom — auto‑detect platform from URL & show icon).
-- **Relations**: relationship to you (free text), how you met, introduced by (link to another contact).
-- **Group**: contact group + sub‑group + tags.
-- **Notes**: a rich list of timestamped notes (`contact_notes` table) — add, edit, delete each independently. Pin important ones to top.
-- **Files/IDs** (optional): national ID, passport no, etc. (free‑form custom fields — see suggestion #3 below).
-  &nbsp;
+I recommend **Option A** because it gives Claude full coverage of all 5 modules (Tasks, Habits & Goals, Prayer, Finance, Contacts/CRM) with one consistent pattern.
 
-### Contacts page UX
+## Deliverable: a deployable MCP server
 
-- Sub‑tabs: **All / Groups / Recent / Favorites**.
-- Search bar (name, phone, email, company, note text, website, location).
-- Filter by group, sub‑group, tag.
-- Grid of group cards on the **Groups** tab → tap a group → see its sub‑groups → see contacts.
-- List view with avatar, name, group chip, last interaction date.
-- Tap a contact → **detail sheet** with tabs: *Info · Notes · Activity · Files*.
-- Quick actions: call, WhatsApp, email, copy phone, open social link.
+A new Supabase Edge Function `lifeos-mcp` built with **mcp-lite + Hono** (Streamable HTTP transport), deployed at:
 
-### AI assistant tools (extends existing `ai-assistant` edge function)
-
-`list_contacts`, `add_contact`, `update_contact`, `archive_contact`, `add_contact_note`, `find_contact`, `list_groups`, `add_group`, `add_subgroup`, `set_contact_tags`. Examples: *"Add Karim from RBIT, phone +880…, hosting client"*, *"Show all RBIT clients"*, *"Add note to Karim: paid for 2026 hosting"*.
-
----
-
-## 2. Suggested Extra Features — pick what you want
-
-Mark each as **Yes / Maybe / No** and I'll lock the final scope.
-
-**(Maybe) Interaction timeline** — auto-log when you opened the profile, called, or messaged. Manual "Logged a meeting" entries with date + summary. Helps you remember *"when did I last talk to X"*.
-
-1. **(Yes add this)  Custom fields per group** — e.g. *University* group can have "Student ID, Department, Session"; *RBIT Clients* can have "Service, Renewal date, Amount". Defined once per group, applies to all contacts in it.
-2. **(Yes add this) Follow‑up reminders** — set "Remind me to follow up with Karim on May 20" → creates a task in the existing Tasks module linked back to the contact.
-3. **(Yes add this) Link to Finance** — mark a contact as a *client/vendor/lender*. Their `finance_loans` and recurring payments auto‑show on the profile. *"Karim owes you 5,000 BDT"* visible at a glance.
-4. **(Maybe but not now save for future) Link to Habits/Goals** — assign a contact as accountability partner for a goal or habit (shows their avatar on the goal card).
-5. **(Yes good features idea)  Family tree / relationships** — link contacts to each other ("father of", "wife of", "colleague at"). Shown as a small graph on profile.
-6. **(Maybe) Communication log shortcuts** — tap "Called" / "WhatsApped" / "Met" buttons → logs to timeline in one tap.
-7. **(Yes) Bulk actions** — multi‑select contacts to move group, add tag, or export.
-8. **Shared with assistant context** — when chatting with AI, *"What do I know about Karim?"* returns full profile + recent notes + linked finance/tasks.
-
-My recommendation if you want a strong v1 without bloat: **Yes** to 1, 2, 3, 4, 5, 9, 13, 15. **Maybe** 7, 8, 12. **Skip for now** 6, 10, 11, 14.
-
----
-
-## 3. Database (new tables, all RLS by `user_id`)
-
-```text
-contact_groups       (id, user_id, name, color, icon, position, created_at)
-contact_subgroups    (id, user_id, group_id, name, position, created_at)
-contacts             (id, user_id, group_id, subgroup_id,
-                      full_name, nickname, avatar_url, gender, dob,
-                      company, job_title, website, relationship,
-                      met_through_id (→ contacts.id), notes_summary,
-                      is_favorite, is_private, status, created_at, updated_at)
-contact_phones       (id, contact_id, user_id, label, number, is_whatsapp, position)
-contact_emails       (id, contact_id, user_id, label, email, position)
-contact_addresses    (id, contact_id, user_id, label, line1, city, country, position)
-contact_socials      (id, contact_id, user_id, platform, url, position)
-contact_tags         (id, user_id, name, color)            ← reusable tag library
-contact_tag_links    (contact_id, tag_id, user_id)         ← M:N
-contact_notes        (id, contact_id, user_id, body, is_pinned, created_at, updated_at)
-contact_events       (id, contact_id, user_id, kind (call/meet/whatsapp/email/custom),
-                      occurred_at, summary)                 ← interaction timeline
-contact_custom_fields(id, group_id, user_id, label, type, position)   ← if you pick #3
-contact_field_values (id, contact_id, field_id, user_id, value)
+```
+https://cpnahbutjrtfzknqjaor.supabase.co/functions/v1/lifeos-mcp
 ```
 
-Indexes on `(user_id, group_id)`, `(user_id, full_name)` (trigram for search), `(contact_id)` on every child table.
+Connected to Claude Desktop / Claude.ai as a remote MCP server.
 
-Foreign‑key cascade deletes on contact removal. `met_through_id` set NULL on delete.
+### Authentication
 
----
+Two layers:
 
-## 4. Frontend structure
+1. **Claude → MCP server**: a static `LIFEOS_MCP_TOKEN` secret. The server checks `Authorization: Bearer <token>` on every request. You set this token once in Claude's MCP connector config.
+2. **MCP server → Supabase**: server uses `SUPABASE_SERVICE_ROLE_KEY` (already configured) and a hardcoded `LIFEOS_USER_ID` secret (your own auth.users id) to scope every query. RLS is bypassed by service role, so we manually apply `.eq('user_id', LIFEOS_USER_ID)` on every read/write — non-negotiable safety rule.
+
+No per-request OAuth, no end-user JWTs. Single-user MCP.
+
+### Tools to expose (grouped by module)
+
+**Tasks (4 tools)**
+
+- `tasks_list` — filter by `group_id`, `only_open`, `due_before`, `due_on` (timezone-aware)
+- `tasks_create` — title, group_id, notes, due_date, priority
+- `tasks_update` — id + partial patch (title, notes, due_date, priority, completed)
+- `tasks_delete` — id
+
+**Task Groups (2 tools)**
+
+- `task_groups_list`
+- `task_groups_create` — name, color, icon
+
+**Habits & Goals (5 tools)**
+
+- `habits_list` — active/archived
+- `habits_log` — habit_id, date, status (done/skipped/missed), value, note
+- `habits_today` — returns each habit + today's log status
+- `goals_list` — by status
+- `goals_create` / `goals_update_progress`
+
+**Prayer (3 tools)**
+
+- `prayer_log` — date, prayer (fajr/dhuhr/asr/maghrib/isha), status (on_time/late/qaza)
+- `prayer_day_summary` — date → 5-prayer status array
+- `quran_log_add` — surah, ayat range, note
+
+**Finance (5 tools)**
+
+- `finance_transactions_list` — filter by kind, category, date range
+- `finance_transaction_add` — kind, amount, currency, category_id, occurred_at, note
+- `finance_loans_list` / `finance_loan_add`
+- `finance_summary` — month → income/expense/net per currency
+
+**Contacts / CRM (7 tools)**
+
+- `contacts_search` — by name, group, tag, favorite
+- `contacts_get` — full profile with phones, emails, socials, notes, relations
+- `contacts_create` — full_name, group_id, gender, dob, etc.
+- `contacts_update`
+- `contact_note_add` — contact_id, body, is_pinned
+- `contact_relation_link` — from, to, relation
+- `contact_groups_list`
+
+**Cross-cutting (1 tool)**
+
+- `whoami` — returns the bound user_id, timezone, primary currency. Useful for Claude to confirm context.
+
+That's ~27 tools. mcp-lite handles them all in one server file.
+
+### Files to create
 
 ```text
-src/pages/app/Contacts.tsx                   ← new page, tabs: All / Groups / Recent / Favorites
-src/components/contacts/
-  ContactsTabs.tsx
-  GroupsView.tsx          (group cards → subgroup list)
-  ContactsList.tsx        (search + filter + virtualized list)
-  ContactCard.tsx         (avatar, name, chips, quick actions)
-  ContactDetailSheet.tsx  (tabs: Info / Notes / Activity / Linked)
-  ContactFormSheet.tsx    (full editor with repeatable phone/email/social rows)
-  GroupFormSheet.tsx
-  SubgroupFormSheet.tsx
-  TagPicker.tsx
-  SocialIcon.tsx          (auto-detect platform from URL)
-  NotesList.tsx           (per-contact pinnable notes)
-  EventsTimeline.tsx      (interaction log)
-src/hooks/useContacts.ts
-src/hooks/useContactGroups.ts
-src/data/contactDefaults.ts (seed groups + common social platforms)
+supabase/functions/lifeos-mcp/
+├── index.ts          # Hono app + mcp-lite server + tool registrations
+├── deno.json         # imports for mcp-lite, hono
+└── lib/
+    ├── auth.ts       # bearer token check
+    ├── supabase.ts   # service-role client factory
+    └── tools/
+        ├── tasks.ts
+        ├── habits.ts
+        ├── prayer.ts
+        ├── finance.ts
+        └── contacts.ts
 ```
 
-Routing: add `/app/contacts` to `App.tsx`. Sidebar + bottom-tabs gain a **Contacts** entry (icon `Users`). Bottom tabs become 6 entries — I'll switch to a "More" overflow if it gets cramped on mobile.
+Plus `supabase/config.toml` entry:
 
-i18n: `contacts.*` keys added to `en.ts` and `bn.ts`.
+```toml
+[functions.lifeos-mcp]
+verify_jwt = false   # we do our own bearer check
+```
 
-All date columns use the existing `useTimezone()` + `todayInTz()` so birthdays/reminders match your local day.
+And one new secret: `LIFEOS_MCP_TOKEN` (random 32-byte hex) and `LIFEOS_USER_ID` (your auth.users uuid).
 
----
+## Reference docs I'll generate alongside the server
 
-## 5. Out of scope (won't build unless you ask)
+I'll also write `supabase/functions/lifeos-mcp/README.md` containing exactly what you asked for in your message, but accurate to this architecture:
 
-- Two‑way sync with Google/Apple Contacts.
-- Email/SMS sending from the app.
-- Multi‑user shared CRM / team accounts.
-- Encryption at rest beyond what the database already provides.
+1. **Tool catalog** — every MCP tool with its input schema and what it does (replaces "API endpoints")
+2. **Database schema reference** — all 30 tables grouped by module, with column types and the enums (`contact_status`, `habit_type`, `finance_currency`, `prayer_name`, `goal_type`, etc.)
+3. **Auth model** — bearer-token + service-role + bound user_id explanation
+4. **Request/response shapes** — JSON examples for each tool's input and the row shapes returned
+5. **Claude connector config** — exact JSON to paste into Claude Desktop's `claude_desktop_config.json` or the Claude.ai remote MCP UI
 
----
+## Open questions before I implement
 
-## What I need from you before I build
+1. **Single-user or multi-user?** I'm assuming single-user (just you). If you ever want to share LifeOS, the MCP server needs OAuth instead of a static token — much bigger build.
+2. **Read-only or read-write?** I'm assuming full read-write so Claude can actually create tasks, log prayers, add transactions. Confirm or restrict.
+3. **Any modules you want excluded?** E.g. should Claude be able to touch Finance and Contacts, or only Tasks/Habits/Prayer?
+4. **Confirm Option A** (direct Supabase access) vs Option B (wrap `ai-assistant`).  
+  
+answers:
+  1. Right now i am building it for me and i am the only user, but in the future maybe and maybe i can share that with my brother and very close friend, but the possibility is really low.
+  2. Full read and write access.
+  3. Full access, and also need to add the future modules what i will add in the future.
+  4. Option A
 
-1. Mark **Yes / Maybe / No** on suggestions **1–15** in section 2 (or just say *"go with your recommendation"*).
-2. Confirm bottom-tab plan: keep 5 tabs and put Contacts under a **More** menu.
-3. Confirm seed groups: *University, RBIT Clients, Service Sellers, Family, Friends, Others* — add/remove any?
+Answer these four and I'll implement the full server, the README, and give you the exact Claude connector config in one go.
