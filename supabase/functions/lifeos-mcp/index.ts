@@ -523,7 +523,10 @@ app.use("*", async (c, next) => {
     });
   }
   const auth = c.req.header("authorization") ?? "";
-  const token = auth.replace(/^Bearer\s+/i, "");
+  const headerToken = auth.replace(/^Bearer\s+/i, "");
+  const url = new URL(c.req.url);
+  const queryToken = url.searchParams.get("token") ?? "";
+  const token = headerToken || queryToken;
   if (!token || token !== MCP_TOKEN) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
