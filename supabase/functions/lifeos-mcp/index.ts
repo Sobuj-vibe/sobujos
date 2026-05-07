@@ -307,6 +307,7 @@ mcp.tool("finance_transaction_add", {
       category_id: { type: "string" }, subcategory_id: { type: "string" },
       pay_for: { type: "string" }, payment_method: { type: "string" },
       occurred_at: { type: "string" }, note: { type: "string" },
+      receipt_url: { type: "string" },
     },
     required: ["kind", "amount"],
   },
@@ -318,8 +319,69 @@ mcp.tool("finance_transaction_add", {
         category_id: a.category_id ?? null, subcategory_id: a.subcategory_id ?? null,
         pay_for: a.pay_for ?? null, payment_method: a.payment_method ?? null,
         occurred_at: a.occurred_at ?? new Date().toISOString(), note: a.note ?? null,
+        receipt_url: a.receipt_url ?? null,
       }).select().single(),
     )),
+});
+
+mcp.tool("finance_transaction_update", {
+  description: "Update a transaction. Pass only fields to change. Set receipt_url to attach/replace receipt (or null to clear).",
+  inputSchema: {
+    type: "object",
+    properties: {
+      id: { type: "string" },
+      kind: { type: "string" }, amount: { type: "number" }, currency: { type: "string" },
+      category_id: { type: "string" }, subcategory_id: { type: "string" },
+      pay_for: { type: "string" }, payment_method: { type: "string" },
+      occurred_at: { type: "string" }, note: { type: "string" },
+      receipt_url: { type: ["string", "null"] },
+    },
+    required: ["id"],
+  },
+  handler: async (a: any) => {
+    const patch: any = {};
+    for (const k of ["kind","amount","currency","category_id","subcategory_id","pay_for","payment_method","occurred_at","note","receipt_url"]) {
+      if (k in a) patch[k] = a[k];
+    }
+    return ok(await run(sb.from("finance_transactions").update(patch).eq("id", a.id).eq("user_id", USER_ID).select().single()));
+  },
+});
+
+mcp.tool("finance_transaction_delete", {
+  description: "Delete a transaction by id.",
+  inputSchema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+  handler: async (a: any) => {
+    await run(sb.from("finance_transactions").delete().eq("id", a.id).eq("user_id", USER_ID));
+    return ok({ deleted: a.id });
+  },
+});
+
+/* Receipt upload — accepts base64 image, stores in private finance-receipts bucket, returns signed URL + path */
+mcp.tool("finance_receipt_upload", {
+  description: "Upload a receipt image (base64) to private storage. Returns { path, signed_url } usable as receipt_url on a transaction. content_type defaults to image/jpeg.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      base64: { type: "string", description: "Raw base64 (no data: prefix) of the image bytes." },
+      content_type: { type: "string", description: "e.g. image/jpeg, image/png, image/webp" },
+      filename: { type: "string", description: "Optional filename suffix (extension inferred from content_type)." },
+      expires_in: { type: "number", description: "Signed URL TTL seconds (default 31536000 = 1y)." },
+    },
+    required: ["base64"],
+  },
+  handler: async (a: any) => {
+    const ct = a.content_type ?? "image/jpeg";
+    const ext = ct.split("/")[1]?.split("+")[0] ?? "jpg";
+    const clean = String(a.base64).replace(/^data:[^;]+;base64,/, "");
+    const bytes = Uint8Array.from(atob(clean), (c) => c.charCodeAt(0));
+    const path = `${USER_ID}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+    const up = await sb.storage.from("finance-receipts").upload(path, bytes, { contentType: ct, upsert: false });
+    if (up.error) throw new Error(up.error.message);
+    const ttl = a.expires_in ?? 60 * 60 * 24 * 365;
+    const signed = await sb.storage.from("finance-receipts").createSignedUrl(path, ttl);
+    if (signed.error) throw new Error(signed.error.message);
+    return ok({ path, signed_url: signed.data.signedUrl });
+  },
 });
 
 mcp.tool("finance_summary", {
@@ -380,6 +442,107 @@ mcp.tool("finance_loan_add", {
         reason: a.reason ?? null, note: a.note ?? null,
       }).select().single(),
     )),
+});
+
+mcp.tool("finance_loan_update", {
+  description: "Update a loan. Set paid=true to mark paid (sets paid_at=now), false to reopen.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      id: { type: "string" }, direction: { type: "string" }, person_name: { type: "string" },
+      amount: { type: "number" }, currency: { type: "string" },
+      loan_date: { type: "string" }, expected_return_date: { type: "string" },
+      reason: { type: "string" }, note: { type: "string" }, paid: { type: "boolean" },
+    },
+    required: ["id"],
+  },
+  handler: async (a: any) => {
+    const patch: any = {};
+    for (const k of ["direction","person_name","amount","currency","loan_date","expected_return_date","reason","note"]) {
+      if (k in a) patch[k] = a[k];
+    }
+    if ("paid" in a) patch.paid_at = a.paid ? new Date().toISOString() : null;
+    return ok(await run(sb.from("finance_loans").update(patch).eq("id", a.id).eq("user_id", USER_ID).select().single()));
+  },
+});
+
+mcp.tool("finance_loan_delete", {
+  description: "Delete a loan by id.",
+  inputSchema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+  handler: async (a: any) => {
+    await run(sb.from("finance_loans").delete().eq("id", a.id).eq("user_id", USER_ID));
+    return ok({ deleted: a.id });
+  },
+});
+
+/* Recurring */
+mcp.tool("finance_recurring_list", {
+  description: "List recurring items. kind: income|expense (optional).",
+  inputSchema: { type: "object", properties: { kind: { type: "string" } } },
+  handler: async (a: any) => {
+    let q = sb.from("finance_recurring").select("*").eq("user_id", USER_ID);
+    if (a.kind) q = q.eq("kind", a.kind);
+    return ok(await run(q.order("next_renewal_date", { ascending: true })));
+  },
+});
+
+mcp.tool("finance_recurring_add", {
+  description: "Add a recurring item. kind: income|expense. frequency: daily|weekly|monthly|yearly.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      kind: { type: "string" }, service_name: { type: "string" }, amount: { type: "number" },
+      currency: { type: "string" }, frequency: { type: "string" },
+      next_renewal_date: { type: "string" }, start_date: { type: "string" },
+      category_id: { type: "string" }, payment_method: { type: "string" },
+      auto_post: { type: "boolean" }, logo_url: { type: "string" }, note: { type: "string" },
+    },
+    required: ["kind", "service_name", "amount", "next_renewal_date"],
+  },
+  handler: async (a: any) =>
+    ok(await run(
+      sb.from("finance_recurring").insert({
+        user_id: USER_ID, kind: a.kind, service_name: a.service_name,
+        amount: a.amount, currency: a.currency ?? "BDT",
+        frequency: a.frequency ?? "monthly",
+        next_renewal_date: a.next_renewal_date,
+        start_date: a.start_date ?? new Date().toISOString().slice(0, 10),
+        category_id: a.category_id ?? null, payment_method: a.payment_method ?? null,
+        auto_post: !!a.auto_post, logo_url: a.logo_url ?? null, note: a.note ?? null,
+      }).select().single(),
+    )),
+});
+
+mcp.tool("finance_recurring_update", {
+  description: "Update a recurring item.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      id: { type: "string" },
+      kind: { type: "string" }, service_name: { type: "string" }, amount: { type: "number" },
+      currency: { type: "string" }, frequency: { type: "string" },
+      next_renewal_date: { type: "string" }, start_date: { type: "string" },
+      category_id: { type: "string" }, payment_method: { type: "string" },
+      auto_post: { type: "boolean" }, logo_url: { type: "string" }, note: { type: "string" },
+    },
+    required: ["id"],
+  },
+  handler: async (a: any) => {
+    const patch: any = {};
+    for (const k of ["kind","service_name","amount","currency","frequency","next_renewal_date","start_date","category_id","payment_method","auto_post","logo_url","note"]) {
+      if (k in a) patch[k] = a[k];
+    }
+    return ok(await run(sb.from("finance_recurring").update(patch).eq("id", a.id).eq("user_id", USER_ID).select().single()));
+  },
+});
+
+mcp.tool("finance_recurring_delete", {
+  description: "Delete a recurring item by id.",
+  inputSchema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+  handler: async (a: any) => {
+    await run(sb.from("finance_recurring").delete().eq("id", a.id).eq("user_id", USER_ID));
+    return ok({ deleted: a.id });
+  },
 });
 
 /* Contacts / CRM */
