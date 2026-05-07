@@ -9,7 +9,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { CURRENCIES, PAYMENT_METHODS, Currency } from '@/data/financeDefaults';
-import { FinanceKind, useFinanceCategories, useTransactions } from '@/hooks/useFinance';
+import { FinanceKind, useFinanceCategories, useTransactions, Transaction } from '@/hooks/useFinance';
 import { ReceiptUpload } from './ReceiptUpload';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,14 +23,15 @@ type Props = {
   onOpenChange: (b: boolean) => void;
   kind: FinanceKind;
   defaults?: { amount?: number; currency?: Currency; pay_for?: string; occurred_at?: string };
+  editing?: Transaction | null;
 };
 
-export function TransactionForm({ open, onOpenChange, kind, defaults }: Props) {
+export function TransactionForm({ open, onOpenChange, kind, defaults, editing }: Props) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { timezone } = useTimezone();
   const { categories, subcategories, addCategory, addSubcategory } = useFinanceCategories();
-  const { add } = useTransactions({ kind });
+  const { add, update } = useTransactions({ kind });
 
   const cats = useMemo(() => categories.filter((c) => c.kind === kind), [categories, kind]);
 
@@ -49,15 +50,27 @@ export function TransactionForm({ open, onOpenChange, kind, defaults }: Props) {
 
   useEffect(() => {
     if (open) {
-      setCategoryId(cats[0]?.id || '');
-      setSubId('');
-      setAmount(defaults?.amount ? String(defaults.amount) : '');
-      setCurrency(defaults?.currency || 'BDT');
-      setPayFor(defaults?.pay_for || '');
-      setMethod('Cash');
-      setReceipt(null);
-      setWhen(defaults?.occurred_at || localDateTimeInputInTz(new Date(), timezone));
-      setNote('');
+      if (editing) {
+        setCategoryId(editing.category_id || cats[0]?.id || '');
+        setSubId(editing.subcategory_id || '');
+        setAmount(String(editing.amount));
+        setCurrency(editing.currency);
+        setPayFor(editing.pay_for || '');
+        setMethod(editing.payment_method || 'Cash');
+        setReceipt(editing.receipt_url);
+        setWhen(localDateTimeInputInTz(new Date(editing.occurred_at), timezone));
+        setNote(editing.note || '');
+      } else {
+        setCategoryId(cats[0]?.id || '');
+        setSubId('');
+        setAmount(defaults?.amount ? String(defaults.amount) : '');
+        setCurrency(defaults?.currency || 'BDT');
+        setPayFor(defaults?.pay_for || '');
+        setMethod('Cash');
+        setReceipt(null);
+        setWhen(defaults?.occurred_at || localDateTimeInputInTz(new Date(), timezone));
+        setNote('');
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -98,7 +111,7 @@ export function TransactionForm({ open, onOpenChange, kind, defaults }: Props) {
       return;
     }
     try {
-      await add({
+      const payload = {
         kind,
         category_id: categoryId,
         subcategory_id: subId || null,
@@ -109,8 +122,10 @@ export function TransactionForm({ open, onOpenChange, kind, defaults }: Props) {
         receipt_url: receipt,
         occurred_at: new Date(when).toISOString(),
         note: note || null,
-        recurring_id: null,
-      });
+        recurring_id: editing?.recurring_id ?? null,
+      };
+      if (editing) await update(editing.id, payload);
+      else await add(payload);
       toast.success(t('finance.saved'));
       onOpenChange(false);
     } catch (e: any) {
@@ -136,7 +151,7 @@ export function TransactionForm({ open, onOpenChange, kind, defaults }: Props) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="h-[92vh] overflow-y-auto rounded-t-3xl">
         <SheetHeader>
-          <SheetTitle>{kind === 'income' ? t('finance.addIncome') : t('finance.addExpense')}</SheetTitle>
+          <SheetTitle>{editing ? t('common.edit') : (kind === 'income' ? t('finance.addIncome') : t('finance.addExpense'))}</SheetTitle>
         </SheetHeader>
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-3 gap-2">
