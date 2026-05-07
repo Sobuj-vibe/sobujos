@@ -47,7 +47,7 @@ export function ReceiptUpload({ value, onChange, onUploaded, label }: Props) {
 
   return (
     <div>
-      <input ref={ref} type="file" accept="image/*" capture="environment" className="hidden" onChange={handle} />
+      <input ref={ref} type="file" accept="image/*" className="hidden" onChange={handle} />
       {url ? (
         <div className="relative inline-block">
           <img src={url} alt="receipt" className="h-24 w-24 rounded-lg object-cover border border-border" />
