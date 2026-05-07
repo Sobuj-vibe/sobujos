@@ -11,12 +11,30 @@ import { FinanceKind, useFinanceCategories, useTransactions, useSignedReceiptUrl
 import { CurrencyAmount } from './CurrencyAmount';
 import { Plus } from 'lucide-react';
 import { TransactionForm } from './TransactionForm';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 function ReceiptThumb({ path }: { path: string | null }) {
+  const [open, setOpen] = useState(false);
   const url = useSignedReceiptUrl(path);
   if (!path) return null;
   if (!url) return <ImageIcon className="h-3 w-3 text-muted-foreground" />;
-  return <img src={url} alt="" className="h-8 w-8 rounded object-cover border border-border" />;
+  return (
+    <>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setOpen(true); }}
+        className="shrink-0"
+        aria-label="View receipt"
+      >
+        <img src={url} alt="receipt" className="h-8 w-8 rounded object-cover border border-border" />
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-3xl p-2 bg-background">
+          <img src={url} alt="receipt" className="w-full h-auto max-h-[85vh] object-contain rounded" />
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }
 
 function Row({ tx, catName, iconName }: { tx: Transaction; catName: string; iconName: string }) {
