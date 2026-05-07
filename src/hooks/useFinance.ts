@@ -280,13 +280,20 @@ export function useTransactions(opts?: { kind?: FinanceKind; daysBack?: number; 
     return data;
   };
 
+  const update = async (id: string, patch: Partial<Omit<Transaction, 'id'>>) => {
+    const { error } = await supabase.from('finance_transactions').update(patch).eq('id', id);
+    if (error) throw error;
+    await refresh();
+    emit();
+  };
+
   const remove = async (id: string) => {
     await supabase.from('finance_transactions').delete().eq('id', id);
     await refresh();
     emit();
   };
 
-  return { items, loading, add, remove, refresh };
+  return { items, loading, add, update, remove, refresh };
 }
 
 export function useLoans() {
@@ -318,6 +325,11 @@ export function useLoans() {
     await refresh();
     emit();
   };
+  const update = async (id: string, patch: Partial<Omit<Loan, 'id'>>) => {
+    await supabase.from('finance_loans').update(patch).eq('id', id);
+    await refresh();
+    emit();
+  };
   const markPaid = async (id: string) => {
     await supabase.from('finance_loans').update({ paid_at: new Date().toISOString() }).eq('id', id);
     await refresh();
@@ -334,7 +346,7 @@ export function useLoans() {
     emit();
   };
 
-  return { items, loading, add, markPaid, markUnpaid, remove, refresh };
+  return { items, loading, add, update, markPaid, markUnpaid, remove, refresh };
 }
 
 export function nextRenewal(date: string, freq: Frequency): string {

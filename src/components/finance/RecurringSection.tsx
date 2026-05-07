@@ -12,7 +12,7 @@ import {
 import { CURRENCIES, PAYMENT_METHODS, FREQUENCIES, Currency, Frequency } from '@/data/financeDefaults';
 import { FinanceKind, useFinanceCategories, useRecurring, Recurring, nextRenewal } from '@/hooks/useFinance';
 import { CurrencyAmount } from './CurrencyAmount';
-import { Plus, Trash2, Repeat } from 'lucide-react';
+import { Plus, Trash2, Repeat, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useTimezone } from '@/contexts/TimezoneContext';
@@ -24,7 +24,7 @@ function daysUntil(date: string) {
   return Math.ceil((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function RecurringCard({ r, onDelete }: { r: Recurring; onDelete: (id: string) => void }) {
+function RecurringCard({ r, onDelete, onEdit }: { r: Recurring; onDelete: (id: string) => void; onEdit: (r: Recurring) => void }) {
   const { t } = useTranslation();
   const days = daysUntil(r.next_renewal_date);
   const soon = days <= 5 && days >= 0;
@@ -47,17 +47,22 @@ function RecurringCard({ r, onDelete }: { r: Recurring; onDelete: (id: string) =
       </div>
       <div className="text-right">
         <CurrencyAmount amount={r.amount} currency={r.currency} signed={r.kind} className="text-sm" />
-        <button onClick={() => onDelete(r.id)} className="block mt-1 ml-auto p-1 text-muted-foreground hover:text-destructive">
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        <div className="mt-1 flex justify-end gap-1">
+          <button onClick={() => onEdit(r)} className="p-1 text-muted-foreground hover:text-primary">
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={() => onDelete(r.id)} className="p-1 text-muted-foreground hover:text-destructive">
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-function RecurringForm({ open, onOpenChange }: { open: boolean; onOpenChange: (b: boolean) => void }) {
+function RecurringForm({ open, onOpenChange, editing }: { open: boolean; onOpenChange: (b: boolean) => void; editing?: Recurring | null }) {
   const { t } = useTranslation();
-  const { add } = useRecurring();
+  const { add, update } = useRecurring();
   const { categories } = useFinanceCategories();
   const { timezone } = useTimezone();
   const [kind, setKind] = useState<FinanceKind>('expense');
@@ -75,9 +80,32 @@ function RecurringForm({ open, onOpenChange }: { open: boolean; onOpenChange: (b
   const cats = categories.filter((c) => c.kind === kind);
   useEffect(() => { setCategoryId(cats[0]?.id || ''); /* eslint-disable-next-line */ }, [kind, categories.length]);
 
+  useEffect(() => {
+    if (!open) return;
+    if (editing) {
+      setKind(editing.kind);
+      setName(editing.service_name);
+      setAmount(String(editing.amount));
+      setCurrency(editing.currency);
+      setMethod(editing.payment_method || 'Cash');
+      setCategoryId(editing.category_id || '');
+      setStart(editing.start_date);
+      setNext(editing.next_renewal_date);
+      setFreq(editing.frequency);
+      setAutoPost(editing.auto_post);
+      setNote(editing.note || '');
+    } else {
+      setName(''); setAmount(''); setNote(''); setAutoPost(false);
+      setStart(todayInTz(timezone));
+      setNext(nextRenewal(todayInTz(timezone), 'monthly'));
+      setFreq('monthly');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   const submit = async () => {
     if (!name.trim() || !amount) { toast.error('Name and amount required'); return; }
-    await add({
+    const payload = {
       kind,
       service_name: name.trim(),
       amount: Number(amount),
@@ -88,18 +116,19 @@ function RecurringForm({ open, onOpenChange }: { open: boolean; onOpenChange: (b
       next_renewal_date: next,
       frequency: freq,
       auto_post: autoPost,
-      logo_url: null,
+      logo_url: editing?.logo_url ?? null,
       note: note || null,
-    });
+    };
+    if (editing) await update(editing.id, payload);
+    else await add(payload);
     toast.success(t('finance.saved'));
     onOpenChange(false);
-    setName(''); setAmount(''); setNote('');
   };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="h-[90vh] overflow-y-auto rounded-t-3xl">
-        <SheetHeader><SheetTitle>{t('finance.addRecurring')}</SheetTitle></SheetHeader>
+        <SheetHeader><SheetTitle>{editing ? t('common.edit') : t('finance.addRecurring')}</SheetTitle></SheetHeader>
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-2">
             <Button type="button" variant={kind === 'expense' ? 'default' : 'outline'} onClick={() => setKind('expense')}>{t('finance.expense')}</Button>
@@ -159,6 +188,7 @@ function RecurringForm({ open, onOpenChange }: { open: boolean; onOpenChange: (b
 export function RecurringSection() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Recurring | null>(null);
   const { items, remove } = useRecurring();
   const { timezone } = useTimezone();
 
@@ -191,16 +221,16 @@ export function RecurringSection() {
       {grouped.expense.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('finance.expense')}</h3>
-          {grouped.expense.map((r) => <RecurringCard key={r.id} r={r} onDelete={remove} />)}
+          {grouped.expense.map((r) => <RecurringCard key={r.id} r={r} onDelete={remove} onEdit={(rr) => { setEditing(rr); setOpen(true); }} />)}
         </div>
       )}
       {grouped.income.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('finance.income')}</h3>
-          {grouped.income.map((r) => <RecurringCard key={r.id} r={r} onDelete={remove} />)}
+          {grouped.income.map((r) => <RecurringCard key={r.id} r={r} onDelete={remove} onEdit={(rr) => { setEditing(rr); setOpen(true); }} />)}
         </div>
       )}
-      <RecurringForm open={open} onOpenChange={setOpen} />
+      <RecurringForm open={open} onOpenChange={(b) => { setOpen(b); if (!b) setEditing(null); }} editing={editing} />
     </div>
   );
 }

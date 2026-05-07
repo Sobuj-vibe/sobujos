@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as Icons from 'lucide-react';
-import { Trash2, Image as ImageIcon } from 'lucide-react';
+import { Trash2, Image as ImageIcon, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -42,6 +42,7 @@ function Row({ tx, catName, iconName }: { tx: Transaction; catName: string; icon
 export function TransactionList({ kind }: { kind: FinanceKind }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Transaction | null>(null);
   const { items, remove } = useTransactions({ kind });
   const { categories } = useFinanceCategories();
   const catMap = useMemo(() => Object.fromEntries(categories.map((c) => [c.id, c])), [categories]);
@@ -91,19 +92,33 @@ export function TransactionList({ kind }: { kind: FinanceKind }) {
           return (
             <div key={tx.id} className="group relative">
               <Row tx={tx} catName={c?.name || '—'} iconName={c?.icon || 'Tag'} />
-              <button
-                onClick={() => remove(tx.id)}
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition p-1 text-muted-foreground hover:text-destructive"
-                aria-label="delete"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
+              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition flex gap-1">
+                <button
+                  onClick={() => { setEditing(tx); setOpen(true); }}
+                  className="p-1 text-muted-foreground hover:text-primary"
+                  aria-label="edit"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => remove(tx.id)}
+                  className="p-1 text-muted-foreground hover:text-destructive"
+                  aria-label="delete"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           );
         })}
       </div>
 
-      <TransactionForm open={open} onOpenChange={setOpen} kind={kind} />
+      <TransactionForm
+        open={open}
+        onOpenChange={(b) => { setOpen(b); if (!b) setEditing(null); }}
+        kind={kind}
+        editing={editing}
+      />
     </div>
   );
 }
