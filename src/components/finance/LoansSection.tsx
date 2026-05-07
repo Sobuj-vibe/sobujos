@@ -11,17 +11,18 @@ import {
 import { CURRENCIES, Currency } from '@/data/financeDefaults';
 import { useLoans, Loan } from '@/hooks/useFinance';
 import { CurrencyAmount } from './CurrencyAmount';
-import { CheckCircle2, RotateCcw, Plus, Trash2 } from 'lucide-react';
+import { CheckCircle2, RotateCcw, Plus, Trash2, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { todayInTz } from '@/lib/datetime';
 
-function LoanCard({ loan, onPaid, onUnpaid, onDelete }: {
+function LoanCard({ loan, onPaid, onUnpaid, onDelete, onEdit }: {
   loan: Loan;
   onPaid: (id: string) => void;
   onUnpaid: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (loan: Loan) => void;
 }) {
   const { t } = useTranslation();
   const today = new Date();
@@ -63,6 +64,9 @@ function LoanCard({ loan, onPaid, onUnpaid, onDelete }: {
                 <CheckCircle2 className="h-3 w-3" />{t('finance.markPaid')}
               </button>
             )}
+            <button onClick={() => onEdit(loan)} className="p-1 text-muted-foreground hover:text-primary">
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
             <button onClick={() => onDelete(loan.id)} className="p-1 text-muted-foreground hover:text-destructive">
               <Trash2 className="h-3.5 w-3.5" />
             </button>
@@ -73,9 +77,9 @@ function LoanCard({ loan, onPaid, onUnpaid, onDelete }: {
   );
 }
 
-function LoanForm({ open, onOpenChange, defaultDirection }: { open: boolean; onOpenChange: (b: boolean) => void; defaultDirection: 'taken' | 'given' }) {
+function LoanForm({ open, onOpenChange, defaultDirection, editing }: { open: boolean; onOpenChange: (b: boolean) => void; defaultDirection: 'taken' | 'given'; editing?: Loan | null }) {
   const { t } = useTranslation();
-  const { add } = useLoans();
+  const { add, update } = useLoans();
   const { timezone } = useTimezone();
   const [direction, setDirection] = useState<'taken' | 'given'>(defaultDirection);
   const [person, setPerson] = useState('');
@@ -86,12 +90,31 @@ function LoanForm({ open, onOpenChange, defaultDirection }: { open: boolean; onO
   const [returnDate, setReturnDate] = useState('');
   const [note, setNote] = useState('');
 
+  useEffect(() => {
+    if (!open) return;
+    if (editing) {
+      setDirection(editing.direction);
+      setPerson(editing.person_name);
+      setReason(editing.reason || '');
+      setAmount(String(editing.amount));
+      setCurrency(editing.currency);
+      setLoanDate(editing.loan_date);
+      setReturnDate(editing.expected_return_date || '');
+      setNote(editing.note || '');
+    } else {
+      setDirection(defaultDirection);
+      setPerson(''); setReason(''); setAmount(''); setCurrency('BDT');
+      setLoanDate(todayInTz(timezone)); setReturnDate(''); setNote('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   const submit = async () => {
     if (!person.trim() || !amount) {
       toast.error('Person and amount required');
       return;
     }
-    await add({
+    const payload = {
       direction,
       person_name: person.trim(),
       reason: reason || null,
@@ -100,16 +123,17 @@ function LoanForm({ open, onOpenChange, defaultDirection }: { open: boolean; onO
       loan_date: loanDate,
       expected_return_date: returnDate || null,
       note: note || null,
-    });
+    };
+    if (editing) await update(editing.id, payload);
+    else await add(payload);
     toast.success(t('finance.saved'));
     onOpenChange(false);
-    setPerson(''); setReason(''); setAmount(''); setReturnDate(''); setNote('');
   };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="h-[85vh] overflow-y-auto rounded-t-3xl">
-        <SheetHeader><SheetTitle>{t('finance.addLoan')}</SheetTitle></SheetHeader>
+        <SheetHeader><SheetTitle>{editing ? t('common.edit') : t('finance.addLoan')}</SheetTitle></SheetHeader>
         <div className="space-y-4 py-4">
           <div>
             <Label>{t('finance.direction')}</Label>
@@ -145,6 +169,7 @@ function LoanForm({ open, onOpenChange, defaultDirection }: { open: boolean; onO
 export function LoansSection() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Loan | null>(null);
   const [side, setSide] = useState<'taken' | 'given'>('taken');
   const { items, markPaid, markUnpaid, remove } = useLoans();
 
@@ -181,11 +206,11 @@ export function LoansSection() {
       {list.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">{t('finance.empty')}</p>}
       <div className="space-y-2">
         {list.map((l) => (
-          <LoanCard key={l.id} loan={l} onPaid={markPaid} onUnpaid={markUnpaid} onDelete={remove} />
+          <LoanCard key={l.id} loan={l} onPaid={markPaid} onUnpaid={markUnpaid} onDelete={remove} onEdit={(loan) => { setEditing(loan); setOpen(true); }} />
         ))}
       </div>
 
-      <LoanForm open={open} onOpenChange={setOpen} defaultDirection={side} />
+      <LoanForm open={open} onOpenChange={(b) => { setOpen(b); if (!b) setEditing(null); }} defaultDirection={side} editing={editing} />
     </div>
   );
 }
