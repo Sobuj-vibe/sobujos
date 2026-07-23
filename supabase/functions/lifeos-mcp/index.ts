@@ -675,28 +675,41 @@ mcp.tool("contact_relation_link", {
 const transport = new StreamableHttpTransport();
 const app = new Hono();
 
+const FN_BASE = "/functions/v1/lifeos-mcp";
 const OAUTH_CLIENT_ID = "lifeos-static-client";
 
-const OAUTH_PATHS = new Set([
+const OAUTH_SUFFIXES = [
   "/.well-known/oauth-authorization-server",
   "/.well-known/oauth-protected-resource",
   "/register",
   "/authorize",
   "/token",
-]);
+];
+// Bypass bearer-auth for these paths under BOTH the bare and function-prefixed form.
+const OAUTH_PATHS = new Set(OAUTH_SUFFIXES.flatMap((s) => [s, `${FN_BASE}${s}`]));
 
 function cors(res: Response) {
   res.headers.set("Access-Control-Allow-Origin", "*");
   return res;
 }
 
-app.get("/.well-known/oauth-authorization-server", (c) => {
+function registerOauthRoute(
+  method: "get" | "post",
+  suffix: string,
+  handler: (c: any) => Response | Promise<Response>,
+) {
+  app[method](suffix, handler);
+  app[method](`${FN_BASE}${suffix}`, handler);
+}
+
+registerOauthRoute("get", "/.well-known/oauth-authorization-server", (c) => {
   const origin = new URL(c.req.url).origin;
+  const base = `${origin}${FN_BASE}`;
   return cors(c.json({
     issuer: origin,
-    authorization_endpoint: `${origin}/authorize`,
-    token_endpoint: `${origin}/token`,
-    registration_endpoint: `${origin}/register`,
+    authorization_endpoint: `${base}/authorize`,
+    token_endpoint: `${base}/token`,
+    registration_endpoint: `${base}/register`,
     response_types_supported: ["code"],
     grant_types_supported: ["authorization_code"],
     code_challenge_methods_supported: ["S256", "plain"],
@@ -704,15 +717,15 @@ app.get("/.well-known/oauth-authorization-server", (c) => {
   }));
 });
 
-app.get("/.well-known/oauth-protected-resource", (c) => {
+registerOauthRoute("get", "/.well-known/oauth-protected-resource", (c) => {
   const origin = new URL(c.req.url).origin;
   return cors(c.json({
-    resource: origin,
+    resource: `${origin}${FN_BASE}`,
     authorization_servers: [origin],
   }));
 });
 
-app.post("/register", async (c) => {
+registerOauthRoute("post", "/register", async (c) => {
   return cors(c.json({
     client_id: OAUTH_CLIENT_ID,
     token_endpoint_auth_method: "none",
@@ -721,7 +734,7 @@ app.post("/register", async (c) => {
   }));
 });
 
-app.get("/authorize", (c) => {
+registerOauthRoute("get", "/authorize", (c) => {
   const url = new URL(c.req.url);
   const redirectUri = url.searchParams.get("redirect_uri");
   const state = url.searchParams.get("state") ?? "";
@@ -732,7 +745,7 @@ app.get("/authorize", (c) => {
   return Response.redirect(cb.toString(), 302);
 });
 
-app.post("/token", async (c) => {
+registerOauthRoute("post", "/token", async (c) => {
   return cors(c.json({
     access_token: MCP_TOKEN,
     token_type: "Bearer",
