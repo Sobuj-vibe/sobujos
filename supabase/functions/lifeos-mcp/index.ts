@@ -675,6 +675,71 @@ mcp.tool("contact_relation_link", {
 const transport = new StreamableHttpTransport();
 const app = new Hono();
 
+const OAUTH_CLIENT_ID = "lifeos-static-client";
+
+const OAUTH_PATHS = new Set([
+  "/.well-known/oauth-authorization-server",
+  "/.well-known/oauth-protected-resource",
+  "/register",
+  "/authorize",
+  "/token",
+]);
+
+function cors(res: Response) {
+  res.headers.set("Access-Control-Allow-Origin", "*");
+  return res;
+}
+
+app.get("/.well-known/oauth-authorization-server", (c) => {
+  const origin = new URL(c.req.url).origin;
+  return cors(c.json({
+    issuer: origin,
+    authorization_endpoint: `${origin}/authorize`,
+    token_endpoint: `${origin}/token`,
+    registration_endpoint: `${origin}/register`,
+    response_types_supported: ["code"],
+    grant_types_supported: ["authorization_code"],
+    code_challenge_methods_supported: ["S256", "plain"],
+    token_endpoint_auth_methods_supported: ["none"],
+  }));
+});
+
+app.get("/.well-known/oauth-protected-resource", (c) => {
+  const origin = new URL(c.req.url).origin;
+  return cors(c.json({
+    resource: origin,
+    authorization_servers: [origin],
+  }));
+});
+
+app.post("/register", async (c) => {
+  return cors(c.json({
+    client_id: OAUTH_CLIENT_ID,
+    token_endpoint_auth_method: "none",
+    grant_types: ["authorization_code"],
+    response_types: ["code"],
+  }));
+});
+
+app.get("/authorize", (c) => {
+  const url = new URL(c.req.url);
+  const redirectUri = url.searchParams.get("redirect_uri");
+  const state = url.searchParams.get("state") ?? "";
+  if (!redirectUri) return cors(c.text("Missing redirect_uri", 400));
+  const cb = new URL(redirectUri);
+  cb.searchParams.set("code", "static");
+  if (state) cb.searchParams.set("state", state);
+  return Response.redirect(cb.toString(), 302);
+});
+
+app.post("/token", async (c) => {
+  return cors(c.json({
+    access_token: MCP_TOKEN,
+    token_type: "Bearer",
+    expires_in: 60 * 60 * 24 * 365,
+  }));
+});
+
 app.use("*", async (c, next) => {
   if (c.req.method === "OPTIONS") {
     return new Response(null, {
@@ -684,6 +749,9 @@ app.use("*", async (c, next) => {
         "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
       },
     });
+  }
+  if (OAUTH_PATHS.has(new URL(c.req.url).pathname)) {
+    return next();
   }
   const auth = c.req.header("authorization") ?? "";
   const headerToken = auth.replace(/^Bearer\s+/i, "");
